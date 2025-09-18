@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+#
+# 常用变量和路径配置
 
 readonly REPO="llleixx/backup-tool"
 readonly VERSION="v0.0.1"

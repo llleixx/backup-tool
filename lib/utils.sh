@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+#
+# 工具函数库
 
 # --- 消息函数 ---
 msg() { echo -e "$@"; }
@@ -7,7 +9,7 @@ msg_err() { msg "${COLOR_RED}$*${COLOR_NC}" >&2; }
 msg_warn() { msg "${COLOR_YELLOW}$*${COLOR_NC}"; }
 msg_info() { msg "${COLOR_BLUE}$*${COLOR_NC}"; }
 
-# --- 辅助函数 ---
+# --- 常用函数 --- 
 check_root() {
     if [[ $EUID -ne 0 ]]; then
         msg_err "错误：此脚本必须以 root 权限运行。"
@@ -35,7 +37,6 @@ check_restic_version() {
 
 get_repo_latest_version() {
     local repo="$1"
-    # 使用 jq 替代 grep/sed，解析更稳定
     curl -fsSL "https://api.github.com/repos/${repo}/releases/latest" | jq -r .tag_name
 }
 
@@ -90,9 +91,9 @@ self_update() {
 }
 
 _uninstall_script() {
-    backup_configs_ids=($(ls "${CONF_DIR}"/backup-*.conf 2>/dev/null | xargs -n1 basename | sed 's/\.conf$//'))
+    mapfile -t backup_configs_ids < <(find "${CONF_DIR}" -maxdepth 1 -name 'backup-*.conf' -print0 | xargs -0 -r -n1 basename | sed 's/\.conf$//')
     delete_all_backup_configs "${backup_configs_ids[@]}"
-    notify_configs_ids=($(ls "${CONF_DIR}"/notify-*.conf 2>/dev/null | xargs -n1 basename | sed 's/\.conf$//'))
+    mapfile -t notify_configs_ids < <(find "${CONF_DIR}" -maxdepth 1 -name 'notify-*.conf' -print0 | xargs -0 -r -n1 basename | sed 's/\.conf$//')
     delete_all_notify_configs "${notify_configs_ids[@]}"
     rm -rf "${ROOT_DIR}"
     rm -f /etc/systemd/system/service-failure-notify@.service
@@ -106,6 +107,7 @@ uninstall_script() {
     if [[ "${confirm,,}" == "y" ]]; then
         _uninstall_script
         msg_ok "脚本已成功卸载。"
+        exit 0
     else
         msg_info "卸载操作已取消。"
         pause

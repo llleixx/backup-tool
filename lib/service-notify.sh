@@ -1,17 +1,6 @@
 #!/usr/bin/env bash
 #
-# /opt/backup/lib/service-notify.sh
-#
-# 通用通知调度库 (最终完善版)
-#
-# 工作流程:
-# 1. 由 service-failure-notify.sh 或 service-success-notify.sh 调用。
-# 2. 根据传入的事件类型 ("SUCCESS" 或 "FAILURE")，动态推断出
-#    需要检查的配置变量 (NOTIFY_ON_...) 和需要调用的内容生成函数 (generate_..._notification)。
-# 3. 执行一次内容生成函数，获取通知的标题和正文。
-# 4. 遍历 /opt/backup/conf/notify-*.conf 目录下的所有配置文件。
-# 5. 对于每个启用了相应通知的配置，根据其 NOTIFY_TYPE 调用对应的发送脚本
-#    (如 notify-email.sh, notify-telegram.sh)，并将标题和正文传递给它。
+# 通用通知调度库 
 
 set -euo pipefail
 
@@ -31,6 +20,7 @@ process_notify() {
     local body="$3"
 
 (
+    # shellcheck source=/dev/null
     source "$conf_file"
 
     echo "-> 正在为 '$conf_file' (类型: ${NOTIFY_TYPE:-未设置}) 分发通知..." >&2
@@ -70,7 +60,7 @@ process_event() {
     local check_variable="NOTIFY_ON_${event_type_upper}"
     local generator_func="generate_${event_type_lower}_notification"
 
-    # --- 2. [健壮性检查] 检查内容生成函数是否存在且可执行 ---
+    # --- 2. 检查内容生成函数是否存在且可执行 ---
     if ! declare -F "$generator_func" >/dev/null; then
         echo "致命错误: 内容生成函数 '$generator_func' 未定义或未导出。请检查调用方脚本。" >&2
         exit 1
@@ -78,7 +68,7 @@ process_event() {
 
     echo "检测到服务 '$unit_name' 事件。正在生成通知内容..." >&2
 
-    # --- 3. 生成通知内容 (仅执行一次) ---
+    # --- 3. 生成通知内容 ---
     local notification_content
     notification_content=$("$generator_func" "$unit_name")
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
+#
+# 菜单显示和处理脚本
 
-# --- 请将您原始脚本中对应的菜单函数代码复制到这里 ---
 select_backup_config_menu() {
     local title="$1"
     local callback_single="$2"

@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
 #
-# /opt/backup/service-failure-notify.sh
-# 内容生成器：为失败事件生成通知标题和正文。
+# 服务失败通知脚本
 
 set -euo pipefail
 
 # 引用公共调度库
-# shellcheck source=service-notify.sh
 source "/opt/backup/lib/service-notify.sh"
 
 # --- 失败通知内容生成函数 ---
@@ -31,14 +29,12 @@ generate_failure_notification() {
 $(systemctl status --full "$unit" 2>&1 || true)
 EOF
 }
-# 将函数导出，以便子 shell 可以调用它
+# 导出函数
 export -f generate_failure_notification
 
-# --- 主逻辑 ---
 if [[ $# -ne 1 ]]; then
     echo "[FAILURE] 用法: $0 <unit-name>" >&2
     exit 1
 fi
 
-# 调用公共调度器，参数大幅简化
 process_event "$1" "FAILURE"

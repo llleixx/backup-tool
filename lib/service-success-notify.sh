@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
 #
-# /opt/backup/service-success-notify.sh
-# 内容生成器：为成功事件生成通知标题和正文。
+# 服务成功通知脚本
 
 set -euo pipefail
 
 # 引用公共调度库
-# shellcheck source=service-notify.sh
 source "/opt/backup/lib/service-notify.sh"
 
 # --- 成功通知内容生成函数 ---
@@ -33,11 +31,9 @@ EOF
 # 导出函数
 export -f generate_success_notification
 
-# --- 主逻辑 ---
 if [[ $# -ne 1 ]]; then
-    echo "[SUCCESS] 用法: $0 <unit-name>" >&2
+    echo "用法: $0 <unit-name>" >&2
     exit 1
 fi
 
-# 调用公共调度器，参数大幅简化
 process_event "$1" "SUCCESS"

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
+#
+# 通知处理函数库
 
-# --- 请将您原始脚本中对应的通知函数代码复制到这里 ---
 add_notify_config() {
     clear
     msg_info "--- 添加新的通知配置 ---"

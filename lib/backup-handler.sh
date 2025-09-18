@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+#
+# 备份处理函数库
 
 check_and_init_repository() {
     local repo="$1"

@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 #
-# /opt/backup/lib/notify-telegram.sh
-#
-# 通用 Telegram Bot 发送脚本 (v2 - 纯文本版)
+# 通用 Telegram Bot 发送脚本
 # 功能：从参数读取配置和标题，从标准输入读取正文，然后通过 Bot API 发送纯文本消息。
 
 set -euo pipefail
@@ -54,7 +52,6 @@ readonly message_text="${SUBJECT}
 ${BODY_CONTENT}"
 
 # --- 构建 JSON payload ---
-# 不再需要 "parse_mode"，Telegram 默认使用纯文本。
 payload=$(jq -nc \
   --arg chat_id "$TELEGRAM_CHAT_ID" \
   --arg text "$message_text" \
@@ -62,10 +59,8 @@ payload=$(jq -nc \
 readonly payload
 
 # --- 发送请求 ---
-# [修正] 修正了 sendMessage 前的斜杠
 readonly api_url="https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage"
 
-# 使用 curl 发送请求，-s 静默模式，-S 在出错时显示错误
 response=$(curl -fsSL -X POST \
   -H "Content-Type: application/json" \
   -d "$payload" \
