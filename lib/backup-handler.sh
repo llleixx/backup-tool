@@ -359,8 +359,8 @@ generate_backup_system_files() {
     cat > "$service_path" << EOF
 [Unit]
 Description=Restic Backup Service (ID: ${config_id})
-OnFailure=service-failure-notify@%n.service
-OnSuccess=service-success-notify@%n.service
+OnFailure=service-failure-notify@%n
+OnSuccess=service-success-notify@%n
 After=network-online.target
 Wants=network-online.target
 [Service]

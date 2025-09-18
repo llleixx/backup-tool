@@ -99,6 +99,7 @@ _uninstall_script() {
     rm -f /etc/systemd/system/service-failure-notify@.service
     rm -f /etc/systemd/system/service-success-notify@.service
     systemctl daemon-reload
+    systemctl reset-failed
 }
 
 uninstall_script() {
