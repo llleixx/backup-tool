@@ -358,9 +358,89 @@ EOF
 }
 
 backup_single_backup_config() {
-    echo "TODO"
+    local config_id="$1"
+    msg_info "正在为配置 ID '$config_id' 触发即时备份..."
+    systemctl start "$config_id.service" &
+    msg_ok "备份任务已触发，您可以使用 'journalctl -u ${config_id}.service -f' 来查看实时日志。"
 }
 
 restore_single_backup_config() {
-    echo "TODO"
+    local config_id="$1"
+    local conf_file="${CONF_DIR}/${config_id}.conf"
+
+    if [[ ! -f "$conf_file" ]]; then
+        msg_err "错误：找不到配置文件 $conf_file"
+        return 1
+    fi
+
+    clear
+    msg_info "--- 开始从配置 [ID: ${config_id}] 恢复备份 ---"
+
+    # 在子 Shell 中执行，避免环境变量泄漏
+    (
+        # shellcheck source=/dev/null
+        source "$conf_file"
+
+        export RESTIC_REPOSITORY
+        export RESTIC_PASSWORD
+
+        local restic_opts
+        [[ -z "$RESTIC_PASSWORD" ]] && restic_opts="--insecure-no-password"
+
+        msg_info "正在获取快照列表..."
+        local snapshots_table
+        snapshots_table=$(restic ${restic_opts} snapshots)
+        if [[ -z "$snapshots_table" ]]; then
+            msg_warn "此 Repository 中没有任何快照。"
+            return
+        fi
+        
+        echo "$snapshots_table"
+        echo
+
+        # 从快照表格中提取所有有效的 short_id
+        local valid_ids
+        valid_ids=$(echo "$snapshots_table" | awk 'NR > 2 {print $1}')
+
+        local snapshot_id
+        while true; do
+            read -rp "请输入要还原的快照 ID (短 ID): " snapshot_id
+            # 检查输入的 ID 是否在有效 ID 列表中
+            if echo "$valid_ids" | grep -q -w "$snapshot_id"; then
+                break
+            else
+                msg_warn "无效的快照 ID '$snapshot_id'，请从上面的列表中选择一个有效的 ID。"
+            fi
+        done
+
+        local restore_path
+        while true; do
+            read -rp "请输入要将文件还原到的绝对路径: " restore_path
+            if [[ -n "$restore_path" && "${restore_path:0:1}" == "/" ]]; then
+                break
+            else
+                msg_warn "请输入一个有效的绝对路径 (以 / 开头)。"
+            fi
+        done
+
+        msg_info "\n--- 确认操作 ---"
+        msg "快照 ID:    $(msg_ok "$snapshot_id")"
+        msg "还原路径:   $(msg_ok "$restore_path")"
+        msg_warn "警告：如果还原路径已存在文件，Restic 可能会覆盖它们。"
+        
+        local confirm
+        read -rp "您确定要继续吗？[y/N]: " confirm
+        if [[ "${confirm,,}" != "y" ]]; then
+            msg_warn "还原操作已取消。"
+            return
+        fi
+
+        msg_info "\n正在开始还原..."
+        if restic ${restic_opts} restore "$snapshot_id" --target "$restore_path"; then
+            msg_ok "还原成功！"
+        else
+            msg_err "还原失败。请检查上面的错误信息。"
+            return 1
+        fi
+    )
 }

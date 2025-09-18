@@ -134,7 +134,7 @@ ensure_restic_version() {
 get_repo_latest_version() {
     local repo="$1"
     # 使用 jq 替代 grep/sed，解析更稳定
-    curl -s "https://api.github.com/repos/${repo}/releases/latest" | jq -r .tag_name
+    curl -fsSL "https://api.github.com/repos/${repo}/releases/latest" | jq -r .tag_name
 }
 
 get_repo_latest_source_code() {
@@ -142,7 +142,7 @@ get_repo_latest_source_code() {
     local target="$2"
     latest_version=$(get_repo_latest_version "$repo")
     target="${target:-./${repo##*/}-${latest_version}.tar.gz}"
-    curl -L -o "$target" "https://github.com/${repo}/archive/refs/tags/${latest_version}.tar.gz"
+    curl -fsSL -o "$target" "https://github.com/${repo}/archive/refs/tags/${latest_version}.tar.gz"
 }
 
 setup_notification_services() {

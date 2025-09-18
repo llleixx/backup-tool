@@ -65,7 +65,7 @@ readonly payload=$(jq -nc \
 readonly api_url="https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage"
 
 # 使用 curl 发送请求，-s 静默模式，-S 在出错时显示错误
-response=$(curl -s -S -X POST \
+response=$(curl -fsSL -X POST \
   -H "Content-Type: application/json" \
   -d "$payload" \
   "$api_url")

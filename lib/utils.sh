@@ -33,6 +33,45 @@ check_restic_version() {
     fi
 }
 
+install_rclone() {
+    if command -v rclone &>/dev/null; then
+        msg_ok "rclone 已安装，跳过安装步骤。"
+        return 0
+    fi
+
+    msg_info "rclone 未安装，开始安装..."
+    local install_script_url="https://rclone.org/install.sh"
+    if curl -fsSL "$install_script_url" | bash; then
+        msg_ok "rclone 安装成功！"
+    else
+        msg_err "错误：rclone 安装失败，请手动安装 rclone。"
+        exit 1
+    fi
+}
+
+self_update() {
+    local latest_version
+    latest_version=$(get_repo_latest_version "$REPO")
+    if [[ "$latest_version" != "$VERSION" ]]; then
+        msg_info "检测到新版本 $latest_version，当前版本 $VERSION，开始更新..."
+        local tmp_file="/tmp/backup-tool-update-${latest_version}.tar.gz"
+        local tmp_dir
+        tmp_dir="$(mktemp -d -t backup-tool-update-XXXXXX)"
+        get_repo_latest_source_code "$REPO" "$tmp_file"
+        if tar -xzf "$tmp_file" -C "$tmp_dir" --strip-components=1; then
+            cp -r "$tmp_dir/"* "${ROOT_DIR}/"
+            rm -rf "$tmp_dir" "$tmp_file"
+            msg_ok "更新成功！请重新运行脚本以使用最新版本。"
+            exit 0
+        else
+            msg_err "错误：解压更新包失败，请手动更新。"
+            exit 1
+        fi
+    else
+        msg_ok "当前已是最新版本 ($VERSION)。"
+    fi
+}
+
 is_valid_oncalendar() {
     systemd-analyze calendar "$1" &>/dev/null
 }
@@ -49,7 +88,7 @@ generate_id() {
 get_value_from_conf() {
     local file="$1"
     local key="$2"
-    grep "^${key}=" "$file" | cut -d'"' -f2
+    grep -E "^${key}=" "$file" | sed -E "s/^${key}=[\"']?([^\"']*)[\"']?/\1/"
 }
 
 unset_config_vars() {

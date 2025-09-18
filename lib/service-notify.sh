@@ -20,6 +20,35 @@ readonly ROOT_DIR="/opt/backup"
 readonly SCRIPT_DIR="$ROOT_DIR/lib"
 readonly CONF_DIR="$ROOT_DIR/conf"
 
+process_notify() {
+    local conf_file="$1"
+    local subject="$2"
+    local body="$3"
+
+(
+    source "$conf_file"
+
+    echo "-> 正在为 '$conf_file' (类型: ${NOTIFY_TYPE:-未设置}) 分发通知..." >&2
+
+    case "${NOTIFY_TYPE:-}" in
+        email|telegram)
+            local sender_script="${SCRIPT_DIR}/notify-${NOTIFY_TYPE}.sh"
+            if [[ -x "$sender_script" ]]; then
+                echo "$body" | "$sender_script" "$conf_file" "$subject"
+            else
+                echo "错误: 发送脚本 '$sender_script' 未找到或不可执行。" >&2
+            fi
+            ;;
+        "")
+            echo "错误: 配置文件 '$conf_file' 中未定义 NOTIFY_TYPE。" >&2
+            ;;
+        *)
+            echo "警告: 配置文件 '$conf_file' 中定义了未知的 NOTIFY_TYPE: '${NOTIFY_TYPE}'。" >&2
+            ;;
+    esac
+)
+}
+
 # --- 核心调度函数 ---
 # 参数:
 # $1: unit_name (发生事件的 systemd 服务单元名称)
@@ -57,32 +86,8 @@ process_event() {
     # --- 4. 遍历所有通知配置并进行分发 ---
     shopt -s nullglob
     for conf_file in "${CONF_DIR}"/notify-*.conf; do
-        ( # 使用子 shell 处理每个配置，避免环境变量污染
-            source "$conf_file"
-
-            if [[ "${!check_variable:-false}" != "true" ]]; then
-                exit 0
-            fi
-
-            echo "-> 正在为 '$conf_file' (类型: ${NOTIFY_TYPE:-未设置}) 分发通知..." >&2
-
-            case "${NOTIFY_TYPE:-}" in
-                email|telegram)
-                    local sender_script="${SCRIPT_DIR}/notify-${NOTIFY_TYPE}.sh"
-                    if [[ -x "$sender_script" ]]; then
-                        echo "$body" | "$sender_script" "$conf_file" "$subject"
-                    else
-                        echo "错误: 发送脚本 '$sender_script' 未找到或不可执行。" >&2
-                    fi
-                    ;;
-                "")
-                    echo "错误: 配置文件 '$conf_file' 中未定义 NOTIFY_TYPE。" >&2
-                    ;;
-                *)
-                    echo "警告: 配置文件 '$conf_file' 中定义了未知的 NOTIFY_TYPE: '${NOTIFY_TYPE}'。" >&2
-                    ;;
-            esac
-        )
+        get_value_from_conf "$conf_file" "$check_variable" | grep -iq "^true$" || continue
+        process_notify "$conf_file" "$subject" "$body"
     done
     shopt -u nullglob
 

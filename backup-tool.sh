@@ -13,7 +13,6 @@ readonly SCRIPT_BASE_DIR="/opt/backup"
 # --- 加载库文件 ---
 source "${SCRIPT_BASE_DIR}/lib/config.sh"
 source "${SCRIPT_BASE_DIR}/lib/utils.sh"
-source "${SCRIPT_BASE_DIR}/lib/setup.sh"
 source "${SCRIPT_BASE_DIR}/lib/backup-handler.sh"
 source "${SCRIPT_BASE_DIR}/lib/notify-handler.sh"
 source "${SCRIPT_BASE_DIR}/lib/ui-menus.sh"

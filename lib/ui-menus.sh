@@ -143,7 +143,8 @@ advanced_settings_menu() {
         msg_ok " 1. 立即备份"
         msg_ok " 2. 恢复备份"
         msg_ok " 3. 通知测试"
-        msg_ok " 4. rclone 安装"
+        msg_ok " 4. 更新脚本"
+        msg_ok " 5. rclone 安装"
         msg_warn " b. 返回主菜单"
         msg_info "------------------------------------------"
         read -rp "输入您的选择: " choice
@@ -151,6 +152,8 @@ advanced_settings_menu() {
             1) select_backup_config_menu "立即备份菜单" "backup_single_backup_config" ;;
             2) select_backup_config_menu "恢复备份菜单" "restore_single_backup_config" ;;
             3) select_notify_config_menu "通知测试菜单" "test_single_notify_config" ;;
+            4) self_update ;;
+            5) install_rclone ;;
             b|B) break ;;
             *) msg_warn "无效的输入，请重新选择。"; sleep 1 ;;
         esac
