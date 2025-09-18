@@ -33,6 +33,8 @@ detect_pkg_manager() {
     elif command -v dnf &>/dev/null; then
         PKG_MANAGER="dnf"
         msg_info "检测到包管理器: dnf"
+        msg_info "正在确保 EPEL 仓库已启用..."
+        dnf install -y epel-release
     elif command -v yum &>/dev/null; then
         PKG_MANAGER="yum"
         msg_info "检测到包管理器: yum"
