@@ -23,6 +23,12 @@
 - **交互式恢复**：提供安全的**交互式恢复**流程，允许从指定的快照恢复数据到任意路径。
 - **rclone 安装**：在高级菜单中提供 `rclone` 安装。
 
+<img width="565" height="520" alt="image" src="https://github.com/user-attachments/assets/d2ba64d7-b9a2-40f7-90c0-8a2a0ab78a8b" />
+
+<img width="594" height="358" alt="image" src="https://github.com/user-attachments/assets/87ffad58-ce50-4be2-b311-6c78f176156c" />
+
+
+
 ## 📋 环境要求
 
 - 一个支持 **systemd** 的 Linux 发行版（如 Debian, Ubuntu, CentOS, Fedora 等）。
