@@ -33,9 +33,24 @@ check_restic_version() {
     fi
 }
 
+get_repo_latest_version() {
+    local repo="$1"
+    # 使用 jq 替代 grep/sed，解析更稳定
+    curl -fsSL "https://api.github.com/repos/${repo}/releases/latest" | jq -r .tag_name
+}
+
+get_repo_latest_source_code() {
+    local repo="$1"
+    local target="$2"
+    latest_version=$(get_repo_latest_version "$repo")
+    target="${target:-./${repo##*/}-${latest_version}.tar.gz}"
+    curl -fsSL -o "$target" "https://github.com/${repo}/archive/refs/tags/${latest_version}.tar.gz"
+}
+
 install_rclone() {
     if command -v rclone &>/dev/null; then
         msg_ok "rclone 已安装，跳过安装步骤。"
+        pause
         return 0
     fi
 
@@ -43,6 +58,7 @@ install_rclone() {
     local install_script_url="https://rclone.org/install.sh"
     if curl -fsSL "$install_script_url" | bash; then
         msg_ok "rclone 安装成功！"
+        pause
     else
         msg_err "错误：rclone 安装失败，请手动安装 rclone。"
         exit 1
@@ -69,6 +85,30 @@ self_update() {
         fi
     else
         msg_ok "当前已是最新版本 ($VERSION)。"
+        pause
+    fi
+}
+
+_uninstall_script() {
+    backup_configs_ids=($(ls "${CONF_DIR}"/backup-*.conf 2>/dev/null | xargs -n1 basename | sed 's/\.conf$//'))
+    delete_all_backup_configs "${backup_configs_ids[@]}"
+    notify_configs_ids=($(ls "${CONF_DIR}"/notify-*.conf 2>/dev/null | xargs -n1 basename | sed 's/\.conf$//'))
+    delete_all_notify_configs "${notify_configs_ids[@]}"
+    rm -rf "${ROOT_DIR}"
+    rm -f /etc/systemd/system/service-failure-notify@.service
+    rm -f /etc/systemd/system/service-success-notify@.service
+    systemctl daemon-reload
+}
+
+uninstall_script() {
+    msg_warn "警告：确定要卸载脚本吗？"
+    read -rp "您确定要继续吗？(y/N): " confirm
+    if [[ "${confirm,,}" == "y" ]]; then
+        _uninstall_script
+        msg_ok "脚本已成功卸载。"
+    else
+        msg_info "卸载操作已取消。"
+        pause
     fi
 }
 

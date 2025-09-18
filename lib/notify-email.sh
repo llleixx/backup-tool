@@ -34,15 +34,14 @@ source "$CONF_FILE"
 : "${TO_ADDR?TO_ADDR 未在配置文件中设置}"
 
 # --- 从标准输入读取邮件正文 ---
-readonly BODY_CONTENT
 BODY_CONTENT=$(cat)
+readonly BODY_CONTENT
 
 if [[ -z "$BODY_CONTENT" ]]; then
     echo "警告: 邮件正文为空。" >&2
 fi
 
 # --- 构造完整的邮件内容 (包含MIME头) ---
-readonly MAIL_CONTENT
 MAIL_CONTENT=$(cat <<EOF
 From: ${FROM_ADDR}
 To: ${TO_ADDR}
@@ -55,6 +54,7 @@ Content-Transfer-Encoding: 8bit
 ${BODY_CONTENT}
 EOF
 )
+readonly MAIL_CONTENT
 
 # --- 构建 msmtp 参数 ---
 declare -a msmtp_opts

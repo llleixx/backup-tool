@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-set -e
-set -o pipefail
+set -euo pipefail
 
 readonly REPO="llleixx/backup-tool"
 
@@ -203,8 +202,8 @@ main() {
     ln -sf ${ROOT_DIR}/backup-tool.sh /usr/local/bin/backup-tool
 
     msg_ok "\n安装完成！"
-    msg_info "现在可以运行 'but.sh' 来开始配置备份任务。"
-    sleep 1
+    msg_info "现在可以运行 'backup-tool' 或者 'but' 来开始配置备份任务。"
+    sleep 5
     
     ${ROOT_DIR}/backup-tool.sh
 }

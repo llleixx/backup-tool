@@ -4,7 +4,7 @@
 select_backup_config_menu() {
     local title="$1"
     local callback_single="$2"
-    local callback_all="$3"
+    local callback_all="${3:-}"
     local prefix="backup-"
     local configs_map=()
     local config_ids=()
@@ -47,7 +47,7 @@ select_backup_config_menu() {
 select_notify_config_menu() {
     local title="$1"
     local callback_single="$2"
-    local callback_all="$3"
+    local callback_all="${3:-}"
     local prefix="notify-"
     local configs_map=()
     local config_ids=()
@@ -92,29 +92,7 @@ select_notify_config_menu() {
     fi
     pause
 }
-show_notify_menu() {
-    while true; do
-        clear
-        msg_info "=========================================="
-        msg_info " 通知配置管理 "
-        msg_info "=========================================="
-        msg_ok " 1. 添加通知配置"
-        msg_ok " 2. 更改通知配置"
-        msg_ok " 3. 查看通知配置"
-        msg_ok " 4. 删除通知配置"
-        msg_warn " b. 返回主菜单"
-        msg_info "------------------------------------------"
-        read -rp "输入您的选择: " choice
-        case "$choice" in
-            1) add_notify_config ;;
-            2) select_notify_config_menu "更改通知菜单" "change_single_notify_config" ;;
-            3) select_notify_config_menu "查看通知菜单" "view_single_notify_config" "view_all_notify_configs" ;;
-            4) select_notify_config_menu "删除通知菜单" "delete_single_notify_config" ;;
-            b|B) break ;;
-            *) msg_warn "无效的输入，请重新选择。"; sleep 1 ;;
-        esac
-    done
-}
+
 show_menu() {
     clear
     msg_info "=========================================="
@@ -131,6 +109,7 @@ show_menu() {
     msg_ok " 8. 查看通知配置"
     msg_ok " 9. 删除通知配置"
     msg_ok "10. 高级"
+    msg_ok "11. 卸载脚本"
     msg " q. 退出"
     msg_info "------------------------------------------"
 }

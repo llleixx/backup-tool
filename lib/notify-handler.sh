@@ -161,20 +161,37 @@ EOF
 }
 delete_single_notify_config() {
     local config_id="$1"
+    local need_confirm="${2:-true}"
     local conf_file="${CONF_DIR}/${config_id}.conf"
     if [[ ! -f "$conf_file" ]]; then msg_err "错误: 找不到配置文件 $conf_file"; return; fi
     local notify_type
     notify_type=$(get_value_from_conf "$conf_file" "NOTIFY_TYPE")
     msg_warn "\n--- 删除通知配置 [ID: ${config_id}] ---"
     msg "您将要删除这个 ${notify_type} 通知配置。"
+    if [[ "$need_confirm" != "false" ]]; then
+        local confirm
+        read -rp "您确定要永久删除此配置吗？此操作无法撤销！[y/N]: " confirm
+        if [[ "${confirm,,}" != "y" ]]; then
+            msg_warn "删除操作已取消。"
+            return
+        fi
+    fi
+    rm -f "$conf_file"
+    msg_ok "通知配置 ${config_id} 已成功删除。"
+}
+
+delete_all_notify_configs() {
+    msg_warn "警告：您将删除所有通知配置。此操作无法撤销！"
     local confirm
-    read -rp "您确定要永久删除此配置吗？此操作无法撤销！[y/N]: " confirm
+    read -rp "您确定要继续吗？[y/N]: " confirm
     if [[ "${confirm,,}" != "y" ]]; then
         msg_warn "删除操作已取消。"
         return
     fi
-    rm -f "$conf_file"
-    msg_ok "通知配置 ${config_id} 已成功删除。"
+    for config_id in "$@"; do
+        delete_single_notify_config "$config_id" "false"
+    done
+    msg_ok "所有通知配置已成功删除。"
 }
 
 test_single_notify_config() {

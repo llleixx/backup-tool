@@ -256,8 +256,9 @@ view_all_backup_configs() {
     done
 }
 
-delete_single_backup_config() {
+_delete_single_backup_config() {
     local config_id="$1"
+    local need_confirm="${2:-true}"
     local conf_file="${CONF_DIR}/${config_id}.conf"
     if [[ ! -f "$conf_file" ]]; then msg_err "错误：找不到配置文件 $conf_file"; return; fi
     local repo
@@ -265,11 +266,13 @@ delete_single_backup_config() {
     msg_warn "\n--- 删除配置 [ID: ${config_id}] ---"
     msg "您将要删除以下配置:"
     msg "  Repository: $(msg_info "$repo")"
-    local confirm
-    read -rp "您确定要永久删除此配置及其关联的所有文件吗？此操作无法撤销！[y/N]: " confirm
-    if [[ "${confirm,,}" != "y" ]]; then
-        msg_warn "删除操作已取消。"
-        return
+    if [[ "$need_confirm" != "false" ]]; then
+        local confirm
+        read -rp "您确定要永久删除此配置及其关联的所有文件吗？此操作无法撤销！[y/N]: " confirm
+        if [[ "${confirm,,}" != "y" ]]; then
+            msg_warn "删除操作已取消。"
+            return
+        fi
     fi
     msg_info "正在停止并禁用 systemd timer..."
     systemctl disable --now "${config_id}.timer" &>/dev/null || true
@@ -277,9 +280,30 @@ delete_single_backup_config() {
     rm -f "${SYSTEMD_DIR}/${config_id}.service" "${SYSTEMD_DIR}/${config_id}.timer"
     msg_info "正在删除配置文件..."
     rm -f "$conf_file"
+}
+
+delete_single_backup_config() {
+    local config_id="$1"
+    _delete_single_backup_config "$config_id" true || return 1
     msg_info "正在重新加载 systemd daemon..."
     systemctl daemon-reload
     msg_ok "配置 ${config_id} 已成功删除。"
+}
+
+delete_all_backup_configs() {
+    msg_warn "警告: 您将删除所有备份配置及其关联的文件！此操作无法撤销！"
+    local confirm
+    read -rp "您确定要继续吗？[y/N]: " confirm
+    if [[ "${confirm,,}" != "y" ]]; then
+        msg_warn "删除操作已取消。"
+        return
+    fi
+    for config_id in "$@"; do
+        _delete_single_backup_config "$config_id" false
+    done
+    msg_info "正在重新加载 systemd daemon..."
+    systemctl daemon-reload
+    msg_ok "所有备份配置已成功删除。"
 }
 
 apply_all_backup_configs() {

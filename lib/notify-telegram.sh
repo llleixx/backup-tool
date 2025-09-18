@@ -32,8 +32,8 @@ if [[ ! -f "$CONF_FILE" ]]; then
 fi
 
 # --- 从标准输入读取消息正文 ---
-readonly BODY_CONTENT
 BODY_CONTENT=$(cat)
+readonly BODY_CONTENT
 
 if [[ -z "$BODY_CONTENT" ]]; then
     echo "[TELEGRAM] 警告: 消息正文为空。" >&2
@@ -55,10 +55,11 @@ ${BODY_CONTENT}"
 
 # --- 构建 JSON payload ---
 # 不再需要 "parse_mode"，Telegram 默认使用纯文本。
-readonly payload=$(jq -nc \
+payload=$(jq -nc \
   --arg chat_id "$TELEGRAM_CHAT_ID" \
   --arg text "$message_text" \
   '{"chat_id": $chat_id, "text": $text}')
+readonly payload
 
 # --- 发送请求 ---
 # [修正] 修正了 sendMessage 前的斜杠

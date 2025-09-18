@@ -15,10 +15,15 @@
 
 set -euo pipefail
 
-# --- 路径定义 ---
-readonly ROOT_DIR="/opt/backup"
-readonly SCRIPT_DIR="$ROOT_DIR/lib"
-readonly CONF_DIR="$ROOT_DIR/conf"
+set_readonly_var() {
+    if [[ -z "${!1-}" ]]; then
+        readonly "$1"="$2"
+    fi
+}
+
+set_readonly_var "ROOT_DIR" "/opt/backup"
+set_readonly_var "SCRIPT_DIR" "$ROOT_DIR/lib"
+set_readonly_var "CONF_DIR" "$ROOT_DIR/conf"
 
 process_notify() {
     local conf_file="$1"
