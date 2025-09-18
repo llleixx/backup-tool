@@ -22,14 +22,6 @@ source "${SCRIPT_BASE_DIR}/lib/ui-menus.sh"
 main() {
     # 初始化检查
     check_root
-    check_dependency "restic"
-    check_dependency "systemd-analyze"
-    check_restic_version
-
-    # 确保基础目录和脚本存在
-    mkdir -p "$CONF_DIR" "$SCRIPT_DIR"
-    setup_notification_services
-    setup_master_backup_script
 
     # 进入主菜单循环
     while true; do
