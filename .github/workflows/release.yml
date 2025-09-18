@@ -28,8 +28,8 @@ jobs:
           echo "Git Tag Version: $TAG_VERSION"
           echo "Config File Version: v$CONFIG_VERSION"
           
-          if [ "v$CONFIG_VERSION" != "$TAG_VERSION" ]; then
-            echo "Error: Version in lib/config.sh (v$CONFIG_VERSION) does not match Git tag ($TAG_VERSION)."
+          if [ "$CONFIG_VERSION" != "$TAG_VERSION" ]; then
+            echo "Error: Version in lib/config.sh ($CONFIG_VERSION) does not match Git tag ($TAG_VERSION)."
             exit 1
           fi
 
