@@ -21,15 +21,15 @@ jobs:
           # Extract version from the Git tag
           TAG_VERSION="${{ github.ref_name }}"
           
-          # Extract version from core.sh, assuming it's defined like: readonly VERSION="X.Y.Z"
+          # Extract version from lib/config.sh, assuming it's defined like: readonly VERSION="X.Y.Z"
           # If your version variable or file is different, adjust the grep command accordingly.
-          CONFIG_VERSION=$(grep -oP 'readonly VERSION="\K[^"]+' core.sh)
+          CONFIG_VERSION=$(grep -oP 'readonly VERSION="\K[^"]+' lib/config.sh)
           
           echo "Git Tag Version: $TAG_VERSION"
           echo "Config File Version: v$CONFIG_VERSION"
           
           if [ "v$CONFIG_VERSION" != "$TAG_VERSION" ]; then
-            echo "Error: Version in core.sh (v$CONFIG_VERSION) does not match Git tag ($TAG_VERSION)."
+            echo "Error: Version in lib/config.sh (v$CONFIG_VERSION) does not match Git tag ($TAG_VERSION)."
             exit 1
           fi
 
