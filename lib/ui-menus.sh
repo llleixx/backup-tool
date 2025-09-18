@@ -97,7 +97,7 @@ select_notify_config_menu() {
 show_menu() {
     clear
     msg_info "=========================================="
-    msg_info " Backup Tool "
+    msg_info " Backup Tool $VERSION "
     msg_info "=========================================="
     msg "请选择一个操作:"
     msg_ok " 1. 添加备份配置"
