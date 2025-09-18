@@ -58,7 +58,11 @@ install_rclone() {
     msg_info "rclone 未安装，开始安装..."
     local install_script_url="https://rclone.org/install.sh"
     if curl -fsSL "$install_script_url" | bash; then
+        mkdir -p ~/.config/rclone
+        touch ~/.config/rclone/rclone.conf
         msg_ok "rclone 安装成功！"
+        msg_info "rclone 配置文件位于 ~/.config/rclone/rclone.conf"
+        msg_info "如果没有配置文件，可以使用 'rclone config' 命令创建。"
         pause
     else
         msg_err "错误：rclone 安装失败，请手动安装 rclone。"
@@ -137,5 +141,5 @@ get_value_from_conf() {
 }
 
 unset_config_vars() {
-    unset CONFIG_ID BACKUP_FILES_LIST RESTIC_REPOSITORY RESTIC_PASSWORD CRON_SCHEDULE KEEP_DAILY KEEP_WEEKLY
+    unset CONFIG_ID BACKUP_FILES_LIST RESTIC_REPOSITORY RESTIC_PASSWORD ON_CALENDAR KEEP_DAILY KEEP_WEEKLY
 }

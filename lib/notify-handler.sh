@@ -37,9 +37,9 @@ EOF
         local smtp_host smtp_port smtp_user smtp_pass from_addr to_addr smtp_tls
         read -rp "请输入 SMTP 服务器地址 (e.g., smtp.gmail.com): " smtp_host
         read -rp "请输入 SMTP 服务器端口 (e.g., 587): " smtp_port
-        read -rp "请输入 SMTP 用户名 (e.g., your-email@gmail.com): " smtp_user
+        read -rp "请输入 SMTP 用户 (e.g., your-email@gmail.com): " smtp_user
         read -rsp "请输入 SMTP 密码/App Password: " smtp_pass; echo
-        read -rp "请输入发件人地址 (e.g., your-email@gmail.com): " from_addr
+        read -rp "请输入发件人地址 (与 SMTP 用户相同即可): " from_addr
         read -rp "请输入收件人地址: " to_addr
         while true; do
             read -rp "请选择 TLS 类型 [1: starttls, 2: on(SMTPS), 3: off]: " choice

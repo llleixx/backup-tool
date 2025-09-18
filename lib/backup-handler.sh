@@ -59,7 +59,7 @@ check_backup_dry_run() {
 
 add_backup_config() {
     msg_info "--- 开始添加新的备份配置 ---"
-    local repo backup_files_list password password_confirm cron_schedule keep_daily keep_weekly restic_opts host
+    local repo backup_files_list password password_confirm on_calendar keep_daily keep_weekly restic_opts host
     while true; do
         read -rp "请输入备份文件列表的路径 [默认: ${DEFAULT_BACKUP_LIST}]: " backup_files_list
         backup_files_list=${backup_files_list:-$DEFAULT_BACKUP_LIST}
@@ -87,12 +87,12 @@ add_backup_config() {
         else break; fi
     done
     while true; do
-        read -rp "请输入 systemd OnCalendar 表达式 [默认: *-*-* 01:30:00 Asia/Shanghai]: " cron_schedule
-        cron_schedule=${cron_schedule:-"*-*-* 01:30:00 Asia/Shanghai"}
-        if is_valid_oncalendar "$cron_schedule"; then
+        read -rp "请输入 systemd OnCalendar 表达式 [默认: *-*-* 01:30:00 Asia/Shanghai]: " on_calendar
+        on_calendar=${on_calendar:-"*-*-* 01:30:00 Asia/Shanghai"}
+        if is_valid_oncalendar "$on_calendar"; then
             break
         else
-            msg_warn "表达式 '$cron_schedule' 无效，请参考 'man systemd.time' 并重试。"
+            msg_warn "表达式 '$on_calendar' 无效，请参考 'man systemd.time' 并重试。"
         fi
     done
     while true; do 
@@ -123,7 +123,7 @@ CONFIG_ID="$config_id"
 BACKUP_FILES_LIST="$backup_files_list"
 RESTIC_REPOSITORY="$repo"
 RESTIC_PASSWORD="$password"
-CRON_SCHEDULE="$cron_schedule"
+ON_CALENDAR="$on_calendar"
 KEEP_DAILY="$keep_daily"
 KEEP_WEEKLY="$keep_weekly"
 EOF
@@ -142,7 +142,7 @@ change_single_backup_config() {
     msg_info "--- 更改配置 [ID: ${config_id}] ---"
     # shellcheck source=/dev/null
     source "$conf_file"
-    local new_repo new_pass new_pass_confirm new_list new_cron new_daily new_weekly change_pass
+    local new_repo new_pass new_pass_confirm new_list new_calendar new_daily new_weekly change_pass
     msg "1. Repository"
     msg "   当前值: $(msg_ok "$RESTIC_REPOSITORY")"
     read -rp "   输入新值或按 Enter 保留: " new_repo
@@ -171,12 +171,12 @@ change_single_backup_config() {
     done
     msg "\n4. 计划任务 (OnCalendar)"
     while true; do
-        read -rp "   输入新值或按 Enter 保留 [当前: $CRON_SCHEDULE]: " new_cron
-        new_cron=${new_cron:-$CRON_SCHEDULE}
-        if is_valid_oncalendar "$new_cron"; then
+        read -rp "   输入新值或按 Enter 保留 [当前: $ON_CALENDAR]: " new_calendar
+        new_calendar=${new_calendar:-$ON_CALENDAR}
+        if is_valid_oncalendar "$new_calendar"; then
             break;
         else
-            msg_warn "   表达式 '$new_cron' 无效，请重试。"
+            msg_warn "   表达式 '$new_calendar' 无效，请重试。"
         fi
     done
     msg "\n5. 保留策略"
@@ -200,7 +200,7 @@ CONFIG_ID="$config_id"
 BACKUP_FILES_LIST="$new_list"
 RESTIC_REPOSITORY="$new_repo"
 RESTIC_PASSWORD="$new_pass"
-CRON_SCHEDULE="$new_cron"
+ON_CALENDAR="$new_calendar"
 KEEP_DAILY="$new_daily"
 KEEP_WEEKLY="$new_weekly"
 EOF
@@ -221,7 +221,7 @@ _view_single_backup_config() {
         source "$conf_file"; set +a;
         msg "  Repository:             $(msg_ok "${RESTIC_REPOSITORY}")"
         msg "  文件列表路径:           $(msg_ok "${BACKUP_FILES_LIST}")"
-        msg "  计划任务 (OnCalendar):  $(msg_ok "${CRON_SCHEDULE}")"
+        msg "  计划任务 (OnCalendar):  $(msg_ok "${ON_CALENDAR}")"
         msg "  保留策略 (daily):       $(msg_ok "${KEEP_DAILY}")"
         msg "  保留策略 (weekly):      $(msg_ok "${KEEP_WEEKLY}")"
         msg "  密码:                   $(msg_warn "[已隐藏]")"
@@ -353,8 +353,8 @@ generate_backup_system_files() {
     local config_id="$1"
     local conf_file="${CONF_DIR}/${config_id}.conf"
     if [[ ! -f "$conf_file" ]]; then msg_err "错误: 找不到配置文件 $conf_file"; return 1; fi
-    local cron_schedule
-    cron_schedule=$(get_value_from_conf "$conf_file" "CRON_SCHEDULE")
+    local on_calendar
+    on_calendar=$(get_value_from_conf "$conf_file" "ON_CALENDAR")
     local service_path="${SYSTEMD_DIR}/${config_id}.service"
     cat > "$service_path" << EOF
 [Unit]
@@ -374,7 +374,7 @@ EOF
 [Unit]
 Description=Run Restic Backup Script (ID: ${config_id}) regularly
 [Timer]
-OnCalendar=${cron_schedule}
+OnCalendar=${on_calendar}
 Persistent=true
 RandomizedDelaySec=15m
 [Install]
