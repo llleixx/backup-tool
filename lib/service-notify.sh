@@ -14,6 +14,8 @@ set_readonly_var "ROOT_DIR" "/opt/backup"
 set_readonly_var "SCRIPT_DIR" "$ROOT_DIR/lib"
 set_readonly_var "CONF_DIR" "$ROOT_DIR/conf"
 
+source "${SCRIPT_DIR}/utils.sh"
+
 process_notify() {
     local conf_file="$1"
     local subject="$2"
