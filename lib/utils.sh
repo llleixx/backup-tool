@@ -98,6 +98,8 @@ _uninstall_script() {
     rm -rf "${ROOT_DIR}"
     rm -f /etc/systemd/system/service-failure-notify@.service
     rm -f /etc/systemd/system/service-success-notify@.service
+    rm -f /usr/local/bin/backup-tool
+    rm -f /usr/local/bin/but
     systemctl daemon-reload
     systemctl reset-failed
 }

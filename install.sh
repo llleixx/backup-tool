@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+export DEBIAN_FRONTEND=noninteractive
+
 readonly REPO="llleixx/backup-tool"
 
 readonly COLOR_GREEN='\033[0;32m'
@@ -203,9 +205,9 @@ main() {
 
     msg_ok "\n安装完成！"
     msg_info "现在可以运行 'backup-tool' 或者 'but' 来开始配置备份任务。"
-    sleep 5
-    
-    ${ROOT_DIR}/backup-tool.sh
+    sleep 2
+
+    exec bash -l -c "${ROOT_DIR}/backup-tool.sh"
 }
 
 main "$@"
