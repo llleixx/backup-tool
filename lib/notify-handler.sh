@@ -14,7 +14,7 @@ add_notify_config() {
         esac
     done
     local conf_id
-    local_id="notify-$(generate_id)"
+    conf_id="notify-$(generate_id)"
     local conf_file="${CONF_DIR}/${conf_id}.conf"
     local notify_on_success notify_on_failure
     read -rp "是否在成功时通知? [Y/n]: " choice

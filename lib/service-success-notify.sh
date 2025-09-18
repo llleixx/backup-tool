@@ -7,7 +7,7 @@ set -euo pipefail
 
 # 引用公共调度库
 # shellcheck source=service-notify.sh
-source "/opt/backup/scripts/service-notify.sh"
+source "/opt/backup/lib/service-notify.sh"
 
 # --- 成功通知内容生成函数 ---
 # 函数名必须是 "generate_success_notification" 以匹配公共库的推断

@@ -143,6 +143,7 @@ advanced_settings_menu() {
         msg_ok " 1. 立即备份"
         msg_ok " 2. 恢复备份"
         msg_ok " 3. 通知测试"
+        msg_ok " 4. rclone 安装"
         msg_warn " b. 返回主菜单"
         msg_info "------------------------------------------"
         read -rp "输入您的选择: " choice

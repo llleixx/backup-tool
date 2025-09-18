@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# /opt/backup/scripts/notify-email.sh
+# /opt/backup/lib/notify-email.sh
 #
 # 通用邮件发送脚本 (msmtp)
 # 功能：从参数读取配置和标题，从标准输入读取正文，然后发送邮件。

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# /opt/backup/scripts/notify-telegram.sh
+# /opt/backup/lib/notify-telegram.sh
 #
 # 通用 Telegram Bot 发送脚本 (v2 - 纯文本版)
 # 功能：从参数读取配置和标题，从标准输入读取正文，然后通过 Bot API 发送纯文本消息。
@@ -32,7 +32,8 @@ if [[ ! -f "$CONF_FILE" ]]; then
 fi
 
 # --- 从标准输入读取消息正文 ---
-readonly BODY_CONTENT=$(cat)
+readonly BODY_CONTENT
+BODY_CONTENT=$(cat)
 
 if [[ -z "$BODY_CONTENT" ]]; then
     echo "[TELEGRAM] 警告: 消息正文为空。" >&2

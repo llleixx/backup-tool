@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Restic 备份管理脚本 v13 (模块化版)
+# Backup Tool
 # 主执行文件
 
 # --- 全局设置 ---

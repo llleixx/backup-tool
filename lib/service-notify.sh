@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# /opt/backup/scripts/service-notify.sh
+# /opt/backup/lib/service-notify.sh
 #
 # 通用通知调度库 (最终完善版)
 #
