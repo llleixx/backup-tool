@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-readonly REPO="lllei/backup-tool"
+readonly REPO="llleixx/backup-tool"
 
 # --- 目录和文件配置 ---
 readonly ROOT_DIR="/opt/backup"

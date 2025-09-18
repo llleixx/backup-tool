@@ -2,7 +2,7 @@
 set -e
 set -o pipefail
 
-readonly REPO="lllei/backup-tool"
+readonly REPO="llleixx/backup-tool"
 
 readonly COLOR_GREEN='\033[0;32m'
 readonly COLOR_RED='\033[0;31m'
