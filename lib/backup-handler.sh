@@ -69,7 +69,7 @@ add_backup_config() {
             msg_warn "警告: 文件 '$backup_files_list' 不存在。请先创建该文件并列出要备份的路径。"
         fi
     done
-    host=$(hostname -s)
+    host=$(uname -n | cut -d'.' -f1)
     while true; do
         read -rp "请输入 restic repository (例如: rclone:remote:backup-$host): " repo
         if [[ -n "$repo" ]]; then

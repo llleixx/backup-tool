@@ -12,7 +12,7 @@ source "/opt/backup/lib/service-notify.sh"
 generate_failure_notification() {
     local unit="$1"
     local hostname
-    hostname="$(hostname -f 2>/dev/null || hostname)"
+    hostname=$(uname -n | cut -d'.' -f1)
     local now
     now="$(date '+%Y-%m-%d %H:%M:%S %Z')"
 
