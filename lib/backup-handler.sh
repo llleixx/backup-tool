@@ -130,7 +130,6 @@ add_backup_config() {
     conf_file="${CONF_DIR}/${config_id}.conf"
     msg_info "正在生成配置文件: $conf_file"
     cat > "$conf_file" << EOF
-# Restic Backup Configuration
 CONFIG_ID="$config_id"
 BACKUP_FILES_LIST="$backup_files_list"
 RESTIC_REPOSITORY="$repo"
@@ -220,7 +219,6 @@ change_single_backup_config() {
     check_backup_dry_run "$new_repo" "$new_pass" "$new_list" || { unset_config_vars; return 1; }
     msg_info "\n正在保存更改到 $conf_file..."
     cat > "$conf_file" << EOF
-# Restic Backup Configuration
 CONFIG_ID="$config_id"
 BACKUP_FILES_LIST="$new_list"
 RESTIC_REPOSITORY="$new_repo"
@@ -228,6 +226,7 @@ RESTIC_PASSWORD="$new_pass"
 ON_CALENDAR="$new_calendar"
 KEEP_DAILY="$new_daily"
 KEEP_WEEKLY="$new_weekly"
+GROUP_BY="tags"
 EOF
     unset_config_vars
     msg_ok "配置已保存。"
@@ -383,7 +382,7 @@ generate_backup_system_files() {
     local service_path="${SYSTEMD_DIR}/${config_id}.service"
     cat > "$service_path" << EOF
 [Unit]
-Description=Restic Backup Service (ID: ${config_id})
+Description=Backup Service (ID: ${config_id})
 OnFailure=service-failure-notify@%n
 OnSuccess=service-success-notify@%n
 After=network-online.target
@@ -397,7 +396,7 @@ EOF
     local timer_path="${SYSTEMD_DIR}/${config_id}.timer"
     cat > "$timer_path" << EOF
 [Unit]
-Description=Run Restic Backup Script (ID: ${config_id}) regularly
+Description=Run Backup Script (ID: ${config_id}) regularly
 [Timer]
 OnCalendar=${on_calendar}
 Persistent=true
