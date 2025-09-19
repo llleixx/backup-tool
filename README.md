@@ -27,8 +27,6 @@
 
 <img width="594" height="358" alt="image" src="https://github.com/user-attachments/assets/87ffad58-ce50-4be2-b311-6c78f176156c" />
 
-
-
 ## 📋 环境要求
 
 - 一个支持 **systemd** 的 Linux 发行版（如 Debian, Ubuntu, CentOS, Fedora 等）。

@@ -3,7 +3,7 @@
 # 常用变量和路径配置
 
 readonly REPO="llleixx/backup-tool"
-readonly VERSION="v0.1.0"
+readonly VERSION="v0.1.1"
 
 # --- 目录和文件配置 ---
 readonly ROOT_DIR="/opt/backup"

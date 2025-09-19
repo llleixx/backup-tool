@@ -1,2 +1,0 @@
-/opt/backup/conf
-/opt/backup/backup_list.txt

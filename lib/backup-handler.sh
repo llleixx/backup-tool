@@ -65,8 +65,20 @@ add_backup_config() {
         backup_files_list=${backup_files_list:-$DEFAULT_BACKUP_LIST}
         if [[ -f "$backup_files_list" ]]; then
             break
+        fi
+        local backup_dir
+        backup_dir=$(dirname "$backup_files_list")
+        if [[ ! -d "$backup_dir" ]]; then
+            msg_warn "警告: 目录 '$backup_dir' 不存在。请输入一个包含有效目录的路径。"
+            continue
+        fi
+        msg_warn "警告: 文件 '$backup_files_list' 不存在，将尝试创建并填充默认内容..."
+        if ! echo -e "/opt/backup/conf\n/opt/backup/backup_list.txt" > "$backup_files_list"
+        then
+            msg_err "错误：无法创建或写入文件 '$backup_files_list'。请检查路径和权限。"
         else
-            msg_warn "警告: 文件 '$backup_files_list' 不存在。请先创建该文件并列出要备份的路径。"
+            msg_ok "文件已成功创建。"
+            break
         fi
     done
     host=$(uname -n | cut -d'.' -f1)
@@ -166,8 +178,20 @@ change_single_backup_config() {
         new_list=${new_list:-$BACKUP_FILES_LIST}
         if [[ -f "$new_list" ]]; then
             break;
+        fi
+        local backup_dir
+        backup_dir=$(dirname "$backup_files_list")
+        if [[ ! -d "$backup_dir" ]]; then
+            msg_warn "警告: 目录 '$backup_dir' 不存在。请输入一个包含有效目录的路径。"
+            continue
+        fi
+        msg_warn "警告: 文件 '$backup_files_list' 不存在，将尝试创建并填充默认内容..."
+        if ! echo -e "/opt/backup/conf\n/opt/backup/backup_list.txt" > "$backup_files_list"
+        then
+            msg_err "错误：无法创建或写入文件 '$backup_files_list'。请检查路径和权限。"
         else
-            msg_warn "   文件 '$new_list' 不存在，请重新输入。"
+            msg_ok "文件已成功创建。"
+            break
         fi
     done
     msg "\n4. 计划任务 (OnCalendar)"
