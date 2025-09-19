@@ -434,7 +434,7 @@ restore_single_backup_config() {
         export RESTIC_REPOSITORY
         export RESTIC_PASSWORD
 
-        local restic_opts
+        local restic_opts=""
         [[ -z "$RESTIC_PASSWORD" ]] && restic_opts="--insecure-no-password"
 
         msg_info "正在获取快照列表..."
