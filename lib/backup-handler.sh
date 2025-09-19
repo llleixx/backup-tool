@@ -126,6 +126,7 @@ RESTIC_PASSWORD="$password"
 ON_CALENDAR="$on_calendar"
 KEEP_DAILY="$keep_daily"
 KEEP_WEEKLY="$keep_weekly"
+GROUP_BY="tags"
 EOF
     msg_ok "配置文件已保存。"
     msg_info "正在生成并应用系统服务文件..."

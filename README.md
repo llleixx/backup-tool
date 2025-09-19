@@ -58,7 +58,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/llleixx/backup-tool/master/i
 
 **配置生成、编辑以及删除应由脚本完成，请勿手动更改。**
 
-主菜单中的**应用脚本**：当你手动修改脚本（不推荐）或者**配置文件迁移**时，需要调用**应用脚本**来让系统服务与配置同步。
+主菜单中的**应用脚本**：当你手动修改脚本（不推荐）或者**配置文件迁移**（但是请不要两台机器**同时使用**一份配置（指配置的 `CONFIG_ID` 相同））时，需要调用**应用脚本**来让系统服务与配置同步。
 
 高级菜单中提供**立即备份**选项。
 
@@ -72,6 +72,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/llleixx/backup-tool/master/i
 `ON_CALENDAR`|`*-*-* 01:30:00 Asia/Shanghai`|UTC+8 时区，每日凌晨 01:30:00 备份（会有随机 15min 内的时延）
 `KEEP_DAILY`|`7`|在过去 7 天内，每天保留一个最新的快照
 `KEEP_WEEKLY`|`4`|在过去 4 周内，每周保留一个最新的快照
+`GROUP_BY`|`tags`|`restic` 备份时父镜像选择依据，默认为 `tags`，目前使用该脚本不能修改该选项
 
 ### 通知
 

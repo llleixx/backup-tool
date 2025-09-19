@@ -14,8 +14,23 @@ RESTIC_BIN=$(command -v restic)
 if [[ -z "$RESTIC_BIN" ]]; then echo "错误： 'restic' 命令未找到。" >&2; exit 1; fi
 RESTIC_OPTS=""
 if [[ -z "$RESTIC_PASSWORD" ]]; then RESTIC_OPTS="--insecure-no-password"; fi
+
+# 如果配置文件中未定义 GROUP_BY，则默认为 'tags'
+GROUP_BY=${GROUP_BY:-tags}
+
+# --- 构建备份命令 ---
+BACKUP_CMD=("$RESTIC_BIN" $RESTIC_OPTS "backup" "--verbose" "--files-from" "${BACKUP_FILES_LIST}")
+BACKUP_CMD+=("--tag" "${CONFIG_ID}")
+BACKUP_CMD+=("--group-by" "${GROUP_BY}")
+
+# --- 构建清理命令 ---
+FORGET_CMD=("$RESTIC_BIN" $RESTIC_OPTS "forget" "--keep-daily" "${KEEP_DAILY}" "--keep-weekly" "${KEEP_WEEKLY}" "--prune")
+FORGET_CMD+=("--group-by" "${GROUP_BY}")
+
 echo "[$(date)] -- 开始备份 (Config: ${CONF_FILE})"
-$RESTIC_BIN $RESTIC_OPTS backup --verbose --files-from "${BACKUP_FILES_LIST}"
+"${BACKUP_CMD[@]}"
+
 echo "[$(date)] -- 开始清理旧备份 (Config: ${CONF_FILE})"
-$RESTIC_BIN $RESTIC_OPTS forget --keep-daily "${KEEP_DAILY}" --keep-weekly "${KEEP_WEEKLY}" --prune
+"${FORGET_CMD[@]}"
+
 echo "[$(date)] -- 备份完成 (Config: ${CONF_FILE})"
