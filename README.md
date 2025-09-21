@@ -10,7 +10,7 @@
 - `restic` 备份文件是**加密**的（当然密码也可以设置为空），即使是共享云端存储空间，别人也不会知道内容（当然即使这样也不推荐）
 - `restic` 是**多平台**的，Windows 也能使用
 
-推荐搭配 [rclone](https://rclone.org/) 使用。
+推荐搭配 [rclone](https://rclone.org/) 使用，[简单教程](https://lllei.top/2025/09/18/backup-tool/)。
 
 ## ✨ 主要功能
 
