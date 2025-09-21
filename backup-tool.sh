@@ -4,7 +4,19 @@
 # 主执行文件
 
 # --- 全局设置 ---
-set -euo pipefail
+set -euo pipefail -E
+trap 'error_handler' ERR
+
+error_handler() {
+  local exit_code=$?
+  local line_no=${BASH_LINENO[0]}
+  local command="${BASH_COMMAND}"
+  local func_name="${FUNCNAME[1]}"
+
+  echo "--------------------------------------------------" >&2
+  echo "ERROR: 命令 '$command' 在脚本 '${BASH_SOURCE[1]}' 的函数 '$func_name' 第 $line_no 行失败，退出码为 $exit_code。" >&2
+  echo "--------------------------------------------------" >&2
+}
 
 # 获取脚本所在目录，确保可以正确加载库文件
 readonly _ROOT_DIR="/opt/backup"
