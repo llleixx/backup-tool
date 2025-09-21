@@ -169,7 +169,7 @@ prompt_for_input() {
     local user_input
 
     while true; do
-        read -rp "$prompt_message" user_input
+        read -rp "$prompt_message: " user_input
         if [[ -n "$user_input" ]]; then
             eval "$input_variable_name=\"\$user_input\""
             break
@@ -189,7 +189,7 @@ prompt_for_number() {
     local user_input
 
     while true; do
-        read -rp "$prompt_message" user_input
+        read -rp "$prompt_message: " user_input
         if [[ -z "$user_input" && "$allow_empty" == "true" ]]; then
             eval "$input_variable_name=\"\""
             break
