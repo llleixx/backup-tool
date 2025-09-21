@@ -31,29 +31,6 @@ source "$CONF_FILE"
 : "${FROM_ADDR?FROM_ADDR 未在配置文件中设置}"
 : "${TO_ADDR?TO_ADDR 未在配置文件中设置}"
 
-# --- 从标准输入读取邮件正文 ---
-BODY_CONTENT=$(cat)
-readonly BODY_CONTENT
-
-if [[ -z "$BODY_CONTENT" ]]; then
-    echo "警告: 邮件正文为空。" >&2
-fi
-
-# --- 构造完整的邮件内容 (包含MIME头) ---
-MAIL_CONTENT=$(cat <<EOF
-From: ${FROM_ADDR}
-To: ${TO_ADDR}
-Subject: ${SUBJECT}
-Date: $(LC_ALL=C date -R)
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
-
-${BODY_CONTENT}
-EOF
-)
-readonly MAIL_CONTENT
-
 # --- 构建 msmtp 参数 ---
 declare -a msmtp_opts
 msmtp_opts+=(--host="$SMTP_HOST")
@@ -73,4 +50,17 @@ case "${SMTP_TLS:-starttls}" in
 esac
 
 # --- 发送邮件 ---
-echo "$MAIL_CONTENT" | msmtp "${msmtp_opts[@]}" -t
+# 使用子 shell 来组合所有输出，然后通过管道 `|` 一次性传给 msmtp
+(
+    cat <<EOF
+From: ${FROM_ADDR}
+To: ${TO_ADDR}
+Subject: ${SUBJECT}
+Date: $(LC_ALL=C date -R)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+EOF
+    cat
+) | msmtp "${msmtp_opts[@]}" -t

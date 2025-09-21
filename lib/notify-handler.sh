@@ -206,5 +206,5 @@ delete_all_notify_configs() {
 
 test_single_notify_config() {
     conf_file="${CONF_DIR}/$1.conf"
-    process_notify "$conf_file" "测试通知" "这是一条测试通知。\n\n如果您收到此消息，说明通知配置工作正常。"
+    process_notify "$conf_file" "🟡 [Test] 测试通知" $'这是一条测试通知'
 }

@@ -17,15 +17,13 @@ generate_success_notification() {
     now="$(date '+%Y-%m-%d %H:%M:%S %Z')"
 
     # 第1行: 标题
-    echo "[成功] 服务 $unit 完成 @ $hostname"
+    echo "🟢 [Success] 服务 $unit 完成 @ $hostname"
 
     # 后续行: 正文
     cat <<EOF
 服务名称: $unit
 主机名称: $hostname
 完成时间: $now
-
-备份任务已成功完成。
 EOF
 }
 # 导出函数
