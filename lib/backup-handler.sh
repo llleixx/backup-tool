@@ -18,21 +18,21 @@ check_and_init_repository() {
     if [[ $exit_code -eq 10 ]]; then
         msg_warn "Repository 不存在 (exit code 10)，将尝试初始化..."
         if ! restic ${restic_opts} init; then
-            msg_err "错误：初始化 repository 失败！请检查您的 rclone 配置或路径权限。"
+            msg_err "错误：初始化 repository 失败！请检查您的 rclone 配置或路径权限"
             unset RESTIC_REPOSITORY RESTIC_PASSWORD
             return 1
         fi
-        msg_ok "Repository 初始化成功。"
+        msg_ok "Repository 初始化成功"
     elif [[ $exit_code -eq 1 ]]; then
-        msg_err "错误：访问 repository 失败 (exit code 1)。可能是密码错误或其它连接问题。"
+        msg_err "错误：访问 repository 失败 (exit code 1)，可能是密码错误或其它连接问题"
         unset RESTIC_REPOSITORY RESTIC_PASSWORD
         return 1
     elif [[ $exit_code -ne 0 ]]; then
-        msg_err "错误：发生未知错误，restic 返回 exit code ${exit_code}。"
+        msg_err "错误：发生未知错误，restic 返回 exit code ${exit_code}"
         unset RESTIC_REPOSITORY RESTIC_PASSWORD
         return 1
     else
-        msg_ok "Repository 已存在且凭据正确。"
+        msg_ok "Repository 已存在且凭据正确"
     fi
     unset RESTIC_REPOSITORY RESTIC_PASSWORD
     return 0
@@ -48,20 +48,22 @@ check_backup_dry_run() {
     local restic_opts
     [[ -z "$password" ]] && restic_opts="--insecure-no-password" || restic_opts=""
     if ! restic ${restic_opts} backup --files-from "$backup_files_list" --dry-run; then
-        msg_err "错误：Dry run 失败。请检查文件列表路径 ('$backup_files_list') 或 repository 配置。"
+        msg_err "错误：Dry run 失败，请检查文件列表路径 ('$backup_files_list') 或 repository 配置"
         unset RESTIC_REPOSITORY RESTIC_PASSWORD
         return 1
     fi
-    msg_ok "Dry run 成功！配置看起来是有效的。"
+    msg_ok "Dry run 成功！配置看起来是有效的"
     unset RESTIC_REPOSITORY RESTIC_PASSWORD
     return 0
 }
 
 add_backup_config() {
-    msg_info "--- 开始添加新的备份配置 ---"
-    local repo backup_files_list password password_confirm on_calendar keep_daily keep_weekly restic_opts host
+    msg_info "--- 添加备份配置 ---"
+    local repo backup_files_list password on_calendar keep_daily keep_weekly
+    
+    # 1. 备份文件列表路径
     while true; do
-        read -rp "请输入备份文件列表的路径 [默认: ${DEFAULT_BACKUP_LIST}]: " backup_files_list
+        prompt_for_input "备份文件列表路径 [默认: ${DEFAULT_BACKUP_LIST}]" backup_files_list true
         backup_files_list=${backup_files_list:-$DEFAULT_BACKUP_LIST}
         if [[ -f "$backup_files_list" ]]; then
             break
@@ -69,66 +71,51 @@ add_backup_config() {
         local backup_dir
         backup_dir=$(dirname "$backup_files_list")
         if [[ ! -d "$backup_dir" ]]; then
-            msg_warn "警告: 目录 '$backup_dir' 不存在。请输入一个包含有效目录的路径。"
+            msg_warn "目录不存在: $backup_dir"
             continue
         fi
-        msg_warn "警告: 文件 '$backup_files_list' 不存在，将尝试创建并填充默认内容..."
+        msg_warn "文件不存在，正在创建: $backup_files_list"
         if ! echo -e "/opt/backup/conf\n/opt/backup/backup_list.txt" > "$backup_files_list"
         then
-            msg_err "错误：无法创建或写入文件 '$backup_files_list'。请检查路径和权限。"
+            msg_err "无法创建文件，请检查权限"
         else
-            msg_ok "文件已成功创建。"
+            msg_ok "文件创建成功"
             break
         fi
     done
-    host=$(uname -n | cut -d'.' -f1)
+    
+    # 2. Repository 地址
+    prompt_for_input "Repository 地址 (如: rclone:remote:backup)" repo
+
+    # 3. Repository 密码
+    prompt_for_password "Repository 密码 (可留空)" password true
+    
+    # 4. 备份计划
     while true; do
-        read -rp "请输入 restic repository (例如: rclone:remote:backup-$host): " repo
-        if [[ -n "$repo" ]]; then
-            break;
-        else
-            msg_warn "Repository 不能为空，请重新输入。"
-        fi
-    done
-    while true; do
-        read -rsp "请输入 repository 密码 (可留空): " password
-        echo
-        read -rsp "请再次输入密码以确认: " password_confirm
-        echo
-        if [[ "$password" != "$password_confirm" ]]; then msg_warn "两次输入的密码不匹配，请重新输入。";
-        else break; fi
-    done
-    while true; do
-        read -rp "请输入 systemd OnCalendar 表达式 [默认: *-*-* 01:30:00 Asia/Shanghai]: " on_calendar
+        prompt_for_input "备份计划（OnCalendar）[默认: *-*-* 01:30:00 Asia/Shanghai]" on_calendar true
         on_calendar=${on_calendar:-"*-*-* 01:30:00 Asia/Shanghai"}
         if is_valid_oncalendar "$on_calendar"; then
             break
         else
-            msg_warn "表达式 '$on_calendar' 无效，请参考 'man systemd.time' 并重试。"
+            msg_warn "计划表达式无效，请参考 'man systemd.time'"
         fi
     done
-    while true; do 
-        read -rp "请输入 forget --keep-daily 的天数 [例如: 7]: " keep_daily;
-        if [[ "$keep_daily" =~ ^[0-9]+$ ]]; then
-            break
-        else
-            msg_warn "请输入一个有效的数字。"; 
-        fi
-    done
-    while true; do
-        read -rp "请输入 forget --keep-weekly 的周数 [例如: 4]: " keep_weekly;
-        if [[ "$keep_weekly" =~ ^[0-9]+$ ]]; then
-            break
-        else
-            msg_warn "请输入一个有效的数字。";
-        fi
-    done
+    
+    # 5. 保留策略
+    prompt_for_number "保留天数 (daily) [默认: 7]" keep_daily true
+    keep_daily=${keep_daily:-7}
+    prompt_for_number "保留周数 (weekly) [默认: 4]" keep_weekly true
+    keep_weekly=${keep_weekly:-4}
+
+    # 6. 验证配置
     check_and_init_repository "$repo" "$password" || return 1
     check_backup_dry_run "$repo" "$password" "$backup_files_list" || return 1
+    
+    # 7. 保存配置
     local config_id conf_file
     config_id=backup-$(generate_id)
     conf_file="${CONF_DIR}/${config_id}.conf"
-    msg_info "正在生成配置文件: $conf_file"
+    msg_info "保存配置: $conf_file"
     cat > "$conf_file" << EOF
 CONFIG_ID="$config_id"
 BACKUP_FILES_LIST="$backup_files_list"
@@ -139,100 +126,101 @@ KEEP_DAILY="$keep_daily"
 KEEP_WEEKLY="$keep_weekly"
 GROUP_BY="tags"
 EOF
-    msg_ok "配置文件已保存。"
-    msg_info "正在生成并应用系统服务文件..."
+    msg_ok "配置保存成功"
+    msg_info "应用系统服务..."
     apply_single_backup_config "$config_id"
-    msg_info "--- 新配置添加完成 ---"
+    msg_info "--- 配置添加完成 ---"
     pause
 }
 
 change_single_backup_config() {
     local config_id="$1"
     local conf_file="${CONF_DIR}/${config_id}.conf"
-    if [[ ! -f "$conf_file" ]]; then msg_err "错误：找不到配置文件 $conf_file"; return 1; fi
+    if [[ ! -f "$conf_file" ]]; then msg_err "配置文件不存在: $conf_file"; return 1; fi
     clear
-    msg_info "--- 更改配置 [ID: ${config_id}] ---"
+    msg_info "--- 修改配置 [ID: ${config_id}] ---"
     # shellcheck source=/dev/null
     source "$conf_file"
-    local new_repo new_pass new_pass_confirm new_list new_calendar new_daily new_weekly change_pass
-    msg "1. Repository"
-    msg "   当前值: $(msg_ok "$RESTIC_REPOSITORY")"
-    read -rp "   输入新值或按 Enter 保留: " new_repo
-    new_repo=${new_repo:-$RESTIC_REPOSITORY}
-    msg "\n2. 密码"
-    read -rp "   是否要更改密码? [y/N]: " change_pass
-    if [[ "${change_pass,,}" == "y" ]]; then
-        while true; do
-            read -rsp "   请输入新密码 (可留空): " new_pass; echo
-            read -rsp "   请再次输入密码以确认: " new_pass_confirm; echo
-            if [[ "$new_pass" != "$new_pass_confirm" ]]; then msg_warn "   两次输入的密码不匹配。";
-            else break; fi
-        done
-        else
-            new_pass="$RESTIC_PASSWORD"
+    local new_repo new_pass new_list new_calendar new_daily new_weekly change_pass
+    
+    # 1. Repository
+    prompt_for_input "Repository 地址 [当前: $RESTIC_REPOSITORY] (留空保留)" new_repo true
+    
+    # 2. 密码
+    local change_pass
+    prompt_for_yes_no "修改密码?" change_pass "n"
+    if [[ "$change_pass" == "true" ]]; then
+        prompt_for_password "新密码 (可留空)" new_pass true
     fi
-    msg "\n3. 备份文件列表路径"
+    
+    # 3. 文件列表
     while true; do
-        read -rp "   输入新值或按 Enter 保留 [当前: $BACKUP_FILES_LIST]: " new_list
-        new_list=${new_list:-$BACKUP_FILES_LIST}
+        prompt_for_input "备份文件列表路径 [当前: $BACKUP_FILES_LIST] (留空保留)" new_list true
+        if [[ -z "$new_list" ]]; then
+            break
+        fi
         if [[ -f "$new_list" ]]; then
             break;
         fi
         local backup_dir
-        backup_dir=$(dirname "$backup_files_list")
+        backup_dir=$(dirname "$new_list")
         if [[ ! -d "$backup_dir" ]]; then
-            msg_warn "警告: 目录 '$backup_dir' 不存在。请输入一个包含有效目录的路径。"
+            msg_warn "目录不存在: $backup_dir"
             continue
         fi
-        msg_warn "警告: 文件 '$backup_files_list' 不存在，将尝试创建并填充默认内容..."
-        if ! echo -e "/opt/backup/conf\n/opt/backup/backup_list.txt" > "$backup_files_list"
+        msg_warn "文件不存在，正在创建: $new_list"
+        if ! echo -e "/opt/backup/conf\n/opt/backup/backup_list.txt" > "$new_list"
         then
-            msg_err "错误：无法创建或写入文件 '$backup_files_list'。请检查路径和权限。"
+            msg_err "无法创建文件，请检查权限"
         else
-            msg_ok "文件已成功创建。"
+            msg_ok "文件创建成功"
             break
         fi
     done
-    msg "\n4. 计划任务 (OnCalendar)"
+    
+    # 4. 备份计划
     while true; do
-        read -rp "   输入新值或按 Enter 保留 [当前: $ON_CALENDAR]: " new_calendar
-        new_calendar=${new_calendar:-$ON_CALENDAR}
+        prompt_for_input "备份计划（OnCalendar） [当前: $ON_CALENDAR] (留空保留)" new_calendar true
+        if [[ -z "$new_calendar" ]]; then
+            break
+        fi
         if is_valid_oncalendar "$new_calendar"; then
             break;
         else
-            msg_warn "   表达式 '$new_calendar' 无效，请重试。"
+            msg_warn "计划表达式无效"
         fi
     done
-    msg "\n5. 保留策略"
-    while true; do
-        read -rp "   保留 daily 天数 [当前: $KEEP_DAILY]: " new_daily
-        new_daily=${new_daily:-$KEEP_DAILY}
-        [[ "$new_daily" =~ ^[0-9]+$ ]] && break || msg_warn "   请输入一个有效的数字。"
-    done
-    while true; do
-        read -rp "   保留 weekly 周数 [当前: $KEEP_WEEKLY]: " new_weekly
-        new_weekly=${new_weekly:-$KEEP_WEEKLY}
-        [[ "$new_weekly" =~ ^[0-9]+$ ]] && break || msg_warn "   请输入一个有效的数字。"
-    done
-    msg_info "\n--- 正在验证新配置 ---"
-    check_and_init_repository "$new_repo" "$new_pass" || { unset_config_vars; return 1; }
-    check_backup_dry_run "$new_repo" "$new_pass" "$new_list" || { unset_config_vars; return 1; }
-    msg_info "\n正在保存更改到 $conf_file..."
-    cat > "$conf_file" << EOF
-CONFIG_ID="$config_id"
-BACKUP_FILES_LIST="$new_list"
-RESTIC_REPOSITORY="$new_repo"
-RESTIC_PASSWORD="$new_pass"
-ON_CALENDAR="$new_calendar"
-KEEP_DAILY="$new_daily"
-KEEP_WEEKLY="$new_weekly"
-GROUP_BY="tags"
-EOF
+    
+    # 5. 保留策略
+    prompt_for_number "保留天数 [当前: $KEEP_DAILY] (留空保留)" new_daily true
+    prompt_for_number "保留周数 [当前: $KEEP_WEEKLY] (留空保留)" new_weekly true
+    
+    # 6. 验证并保存配置
+    if [[ -n "$new_repo" || "$change_pass" == "true" || -n "$new_list" ]]; then
+        msg_info "验证新配置..."
+        local final_repo final_pass final_list
+        final_repo=${new_repo:-$RESTIC_REPOSITORY}
+        final_pass=${new_pass:-$RESTIC_PASSWORD}
+        final_list=${new_list:-$BACKUP_FILES_LIST}
+        check_and_init_repository "$final_repo" "$final_pass" || { unset_config_vars; return 1; }
+        check_backup_dry_run "$final_repo" "$final_pass" "$final_list" || { unset_config_vars; return 1; }
+    fi
+
+    msg_info "保存配置到 $conf_file"
+    update_config_if_set "$conf_file" "RESTIC_REPOSITORY" "$new_repo"
+    if [[ "$change_pass" == "true" ]]; then
+        update_config_value "$conf_file" "RESTIC_PASSWORD" "$new_pass"
+    fi
+    update_config_if_set "$conf_file" "BACKUP_FILES_LIST" "$new_list"
+    update_config_if_set "$conf_file" "ON_CALENDAR" "$new_calendar"
+    update_config_if_set "$conf_file" "KEEP_DAILY" "$new_daily"
+    update_config_if_set "$conf_file" "KEEP_WEEKLY" "$new_weekly"
+    
     unset_config_vars
-    msg_ok "配置已保存。"
-    msg_info "\n正在应用新配置到 systemd..."
+    msg_ok "配置保存成功"
+    msg_info "应用新配置到 systemd..."
     apply_single_backup_config "$config_id"
-    msg_ok "--- 配置更改完成 ---"
+    msg_ok "--- 配置修改完成 ---"
 }
 
 _view_single_backup_config() {
@@ -286,50 +274,49 @@ _delete_single_backup_config() {
     local config_id="$1"
     local need_confirm="${2:-true}"
     local conf_file="${CONF_DIR}/${config_id}.conf"
-    if [[ ! -f "$conf_file" ]]; then msg_err "错误：找不到配置文件 $conf_file"; return; fi
+    if [[ ! -f "$conf_file" ]]; then msg_err "配置文件不存在: $conf_file"; return; fi
     local repo
     repo=$(get_value_from_conf "$conf_file" "RESTIC_REPOSITORY")
-    msg_warn "\n--- 删除配置 [ID: ${config_id}] ---"
-    msg "您将要删除以下配置:"
-    msg "  Repository: $(msg_info "$repo")"
+    msg_warn "删除配置 [ID: ${config_id}]"
+    msg "Repository: $(msg_info "$repo")"
     if [[ "$need_confirm" != "false" ]]; then
         local confirm
-        read -rp "您确定要永久删除此配置及其关联的所有文件吗？此操作无法撤销！[y/N]: " confirm
-        if [[ "${confirm,,}" != "y" ]]; then
-            msg_warn "删除操作已取消。"
+        prompt_for_yes_no "确定删除? 此操作无法撤销!" confirm "n"
+        if [[ "$confirm" != "true" ]]; then
+            msg_warn "已取消删除"
             return
         fi
     fi
-    msg_info "正在停止并禁用 systemd timer..."
+    msg_info "停止 systemd timer..."
     systemctl disable --now "${config_id}.timer" &>/dev/null || true
-    msg_info "正在删除 systemd 服务和定时器文件..."
+    msg_info "删除系统文件..."
     rm -f "${SYSTEMD_DIR}/${config_id}.service" "${SYSTEMD_DIR}/${config_id}.timer"
-    msg_info "正在删除配置文件..."
+    msg_info "删除配置文件..."
     rm -f "$conf_file"
 }
 
 delete_single_backup_config() {
     local config_id="$1"
     _delete_single_backup_config "$config_id" true || return 1
-    msg_info "正在重新加载 systemd daemon..."
+    msg_info "重载 systemd daemon..."
     systemctl daemon-reload
-    msg_ok "配置 ${config_id} 已成功删除。"
+    msg_ok "配置 ${config_id} 删除成功"
 }
 
 delete_all_backup_configs() {
-    msg_warn "警告: 您将删除所有备份配置及其关联的文件！此操作无法撤销！"
+    msg_warn "警告: 将删除所有备份配置! 此操作无法撤销!"
     local confirm
-    read -rp "您确定要继续吗？[y/N]: " confirm
-    if [[ "${confirm,,}" != "y" ]]; then
-        msg_warn "删除操作已取消。"
+    prompt_for_yes_no "确定继续?" confirm "n"
+    if [[ "$confirm" != "true" ]]; then
+        msg_warn "已取消删除"
         return
     fi
     for config_id in "$@"; do
         _delete_single_backup_config "$config_id" false
     done
-    msg_info "正在重新加载 systemd daemon..."
+    msg_info "重载 systemd daemon..."
     systemctl daemon-reload
-    msg_ok "所有备份配置已成功删除。"
+    msg_ok "所有备份配置删除成功"
 }
 
 apply_all_backup_configs() {
@@ -337,15 +324,16 @@ apply_all_backup_configs() {
     local success_count=0 fail_count=0
     for config_id in "$@"; do
         if _apply_single_backup_config "$config_id"; then
-            ((success_count++))
+            ((++success_count))
         else
-            ((fail_count++))
+            ((++fail_count))
         fi
     done
     _apply_config_post "$@"
     msg_ok "--- 应用所有配置完成 ---"
     msg_ok "成功应用 ${success_count} 个配置。"
     [[ $fail_count -gt 0 ]] && msg_err "失败 ${fail_count} 个配置。"
+    return 0
 }
 
 _apply_single_backup_config() {
@@ -353,7 +341,10 @@ _apply_single_backup_config() {
     msg_info "正在停止并禁用 ${config_id}.timer..."
     systemctl disable --now "${config_id}.timer" &>/dev/null || true
     msg_info "正在为 ID '${config_id}' 生成系统文件..."
-    if ! generate_backup_system_files "$config_id"; then msg_err "错误：生成系统文件失败。"; return 1; fi
+    if ! generate_backup_system_files "$config_id"; then 
+        msg_err "错误：生成系统文件失败"
+        return 1
+    fi
 }
 
 _apply_config_post() {
@@ -367,10 +358,13 @@ _apply_config_post() {
 
 apply_single_backup_config() {
     local config_id="$1"
-    if [[ -z "$config_id" ]]; then msg_err "错误：缺少配置 ID 参数。"; return 1; fi
+    if [[ -z "$config_id" ]]; then 
+        msg_err "错误：缺少配置 ID 参数"
+        return 1
+    fi
     if ! _apply_single_backup_config "$config_id"; then return 1; fi
     _apply_config_post "$config_id"
-    msg_ok "配置 ${config_id} 已成功应用。"
+    msg_ok "配置 ${config_id} 已成功应用"
 }
 
 generate_backup_system_files() {
@@ -411,7 +405,7 @@ backup_single_backup_config() {
     local config_id="$1"
     msg_info "正在为配置 ID '$config_id' 触发即时备份..."
     systemctl start "$config_id.service" &
-    msg_ok "备份任务已触发，您可以使用 'journalctl -u ${config_id}.service -f' 来查看实时日志。"
+    msg_ok "备份任务已触发，您可以使用 'journalctl -u ${config_id}.service -f' 来查看实时日志"
 }
 
 restore_single_backup_config() {
@@ -424,7 +418,7 @@ restore_single_backup_config() {
     fi
 
     clear
-    msg_info "--- 开始从配置 [ID: ${config_id}] 恢复备份 ---"
+    msg_info "--- 从配置 [ID: ${config_id}] 恢复备份 ---"
 
     # 在子 Shell 中执行，避免环境变量泄漏
     (
@@ -437,11 +431,11 @@ restore_single_backup_config() {
         local restic_opts=""
         [[ -z "$RESTIC_PASSWORD" ]] && restic_opts="--insecure-no-password"
 
-        msg_info "正在获取快照列表..."
+        msg_info "获取快照列表..."
         local snapshots_table
         snapshots_table=$(restic ${restic_opts} snapshots)
         if [[ -z "$snapshots_table" ]]; then
-            msg_warn "此 Repository 中没有任何快照。"
+            msg_warn "此 Repository 中没有快照"
             return
         fi
         
@@ -454,42 +448,42 @@ restore_single_backup_config() {
 
         local snapshot_id
         while true; do
-            read -rp "请输入要还原的快照 ID (短 ID): " snapshot_id
+            prompt_for_input "快照 ID (短 ID)" snapshot_id
             # 检查输入的 ID 是否在有效 ID 列表中
             if echo "$valid_ids" | grep -q -w "$snapshot_id"; then
                 break
             else
-                msg_warn "无效的快照 ID '$snapshot_id'，请从上面的列表中选择一个有效的 ID。"
+                msg_warn "无效的快照 ID: $snapshot_id"
             fi
         done
 
         local restore_path
         while true; do
-            read -rp "请输入要将文件还原到的绝对路径: " restore_path
-            if [[ -n "$restore_path" && "${restore_path:0:1}" == "/" ]]; then
+            prompt_for_input "恢复到路径 (绝对路径)" restore_path
+            if [[ "${restore_path:0:1}" == "/" ]]; then
                 break
             else
-                msg_warn "请输入一个有效的绝对路径 (以 / 开头)。"
+                msg_warn "请输入绝对路径 (以 / 开头)"
             fi
         done
 
-        msg_info "\n--- 确认操作 ---"
-        msg "快照 ID:    $(msg_ok "$snapshot_id")"
-        msg "还原路径:   $(msg_ok "$restore_path")"
-        msg_warn "警告：如果还原路径已存在文件，Restic 可能会覆盖它们。"
+        msg_info "确认操作"
+        msg "快照 ID: $(msg_ok "$snapshot_id")"
+        msg "恢复路径: $(msg_ok "$restore_path")"
+        msg_warn "警告: 可能会覆盖现有文件"
         
         local confirm
-        read -rp "您确定要继续吗？[y/N]: " confirm
-        if [[ "${confirm,,}" != "y" ]]; then
-            msg_warn "还原操作已取消。"
+        prompt_for_yes_no "确定继续?" confirm "n"
+        if [[ "$confirm" != "true" ]]; then
+            msg_warn "已取消恢复"
             return
         fi
 
-        msg_info "\n正在开始还原..."
+        msg_info "开始恢复..."
         if restic ${restic_opts} restore "$snapshot_id" --target "$restore_path"; then
-            msg_ok "还原成功！"
+            msg_ok "恢复成功!"
         else
-            msg_err "还原失败。请检查上面的错误信息。"
+            msg_err "恢复失败，请检查错误信息"
             return 1
         fi
     )

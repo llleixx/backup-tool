@@ -49,22 +49,22 @@ detect_pkg_manager() {
         msg_info "检测到包管理器: apk"
     else
         PKG_MANAGER="unsupported"
-        msg_warn "未检测到支持的包管理器。"
+        msg_warn "未检测到支持的包管理器"
         exit 1
     fi
 }
 
 check_root() {
     if [[ $EUID -ne 0 ]]; then
-        msg_err "错误：此脚本必须以 root 权限运行。"
+        msg_err "错误：此脚本必须以 root 权限运行"
         exit 1
     fi
 }
 
 check_systemd() {
     if ! command -v systemctl &>/dev/null; then
-        msg_err "错误：此脚本需要 systemd，但在您的系统中未找到 systemctl 命令。"
-        msg_err "请在支持 systemd 的 Linux 发行版上运行此脚本。"
+        msg_err "错误：此脚本需要 systemd，但在您的系统中未找到 systemctl 命令"
+        msg_err "请在支持 systemd 的 Linux 发行版上运行此脚本"
         exit 1
     fi
 }
@@ -106,17 +106,17 @@ ensure_dependency() {
             apk add "$dep_pkg"
             ;;
         *)
-            msg_error "错误：不支持的包管理器。"
-            msg_error "请手动安装依赖项 '$dep_pkg'。"
+            msg_err "错误：不支持的包管理器"
+            msg_err "请手动安装依赖项 '$dep_pkg'"
             exit 1
             ;;
     esac
 
     # 4. 验证安装是否成功
     if command -v "$dep_cmd" &>/dev/null; then
-        msg_info "依赖项 '$dep_pkg' 安装成功！"
+        msg_info "依赖项 '$dep_pkg' 安装成功"
     else
-        msg_error "错误：尝试通过 '$PKG_MANAGER' 安装 '$dep_pkg' 后，仍然找不到 '$dep_cmd' 命令。"
+        msg_err "错误：尝试通过 '$PKG_MANAGER' 安装 '$dep_pkg' 后，仍然找不到 '$dep_cmd' 命令"
         exit 1
     fi
 }
@@ -125,12 +125,12 @@ ensure_restic_version() {
     local current_version
     current_version=$(restic version | head -n1 | cut -d' ' -f2)
     if [[ "$(printf '%s\n' "$MIN_RESTIC_VERSION" "$current_version" | sort -V | head -n1)" != "$MIN_RESTIC_VERSION" ]]; then
-        msg_warn "警告：您的 restic 版本 ($current_version) 过低，此脚本要求 restic >= $MIN_RESTIC_VERSION，开始自动更新。"
+        msg_warn "警告：您的 restic 版本 ($current_version) 过低，此脚本要求 restic >= $MIN_RESTIC_VERSION，开始自动更新"
         if ! restic self-update; then
-            msg_err "错误：restic 更新失败，请使用 restic self-update 手动更新。"
+            msg_err "错误：restic 更新失败，请使用 restic self-update 手动更新"
             exit 1
         fi
-        msg_ok "restic 已成功更新至最新版本。"
+        msg_ok "restic 已成功更新至最新版本"
     fi
 }
 
@@ -161,7 +161,7 @@ Type=oneshot
 User=root
 ExecStart=${SCRIPT_DIR}/service-failure-notify.sh %i
 EOF
-    msg_ok "'service-failure-notify@.service' 已创建。"
+    msg_ok "'service-failure-notify@.service' 已创建"
 
     cat > "$success_service_path" << EOF
 [Unit]
@@ -172,7 +172,7 @@ Type=oneshot
 User=root
 ExecStart=${SCRIPT_DIR}/service-success-notify.sh %i
 EOF
-    msg_ok "'service-success-notify@.service' 已创建。"
+    msg_ok "'service-success-notify@.service' 已创建"
     systemctl daemon-reload
 }
 
@@ -206,7 +206,7 @@ main() {
     ln -sf ${ROOT_DIR}/backup-tool.sh /usr/local/bin/backup-tool
 
     msg_ok "\n安装完成！"
-    msg_info "现在可以运行 'backup-tool' 或者 'but' 来开始配置备份任务。"
+    msg_info "现在可以运行 'backup-tool' 或者 'but' 来开始配置备份任务"
     sleep 2
 
     exec bash -l -c "${ROOT_DIR}/backup-tool.sh"

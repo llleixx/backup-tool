@@ -13,9 +13,9 @@ error_handler() {
   local command="${BASH_COMMAND}"
   local func_name="${FUNCNAME[1]}"
 
-  echo "--------------------------------------------------" >&2
-  echo "ERROR: 命令 '$command' 在脚本 '${BASH_SOURCE[1]}' 的函数 '$func_name' 第 $line_no 行失败，退出码为 $exit_code。" >&2
-  echo "--------------------------------------------------" >&2
+  msg_err "--------------------------------------------------"
+  msg_err "ERROR: 命令 '$command' 在脚本 '${BASH_SOURCE[1]}' 的函数 '$func_name' 第 $line_no 行失败，退出码为 $exit_code"
+  msg_err "--------------------------------------------------"
 }
 
 # 获取脚本所在目录，确保可以正确加载库文件
@@ -37,21 +37,22 @@ main() {
     # 进入主菜单循环
     while true; do
         show_menu
-        read -rp "输入您的选择: " choice
+        local choice
+        prompt_for_input "选择" choice
         case "$choice" in
             1) add_backup_config ;;
-            2) select_backup_config_menu "更改备份菜单" "change_single_backup_config" ;;
-            3) select_backup_config_menu "查看备份菜单" "view_single_backup_config" "view_all_backup_configs" ;;
-            4) select_backup_config_menu "删除备份菜单" "delete_single_backup_config" "delete_all_backup_configs" ;;
-            5) select_backup_config_menu "应用备份菜单" "apply_single_backup_config" "apply_all_backup_configs";;
+            2) select_backup_config_menu "修改备份配置" "change_single_backup_config" ;;
+            3) select_backup_config_menu "查看备份配置" "view_single_backup_config" "view_all_backup_configs" ;;
+            4) select_backup_config_menu "删除备份配置" "delete_single_backup_config" "delete_all_backup_configs" ;;
+            5) select_backup_config_menu "应用备份配置" "apply_single_backup_config" "apply_all_backup_configs";;
             6) add_notify_config ;;
-            7) select_notify_config_menu "更改通知菜单" "change_single_notify_config" ;;
-            8) select_notify_config_menu "查看通知菜单" "view_single_notify_config" "view_all_notify_configs" ;;
-            9) select_notify_config_menu "删除通知菜单" "delete_single_notify_config" "delete_all_notify_configs" ;;
+            7) select_notify_config_menu "修改通知配置" "change_single_notify_config" ;;
+            8) select_notify_config_menu "查看通知配置" "view_single_notify_config" "view_all_notify_configs" ;;
+            9) select_notify_config_menu "删除通知配置" "delete_single_notify_config" "delete_all_notify_configs" ;;
             10) advanced_settings_menu ;;
             11) uninstall_script ;;
-            q|Q) msg_info "退出脚本。"; break ;;
-            *) msg_warn "无效的输入，请重新选择。"; sleep 1 ;;
+            q|Q) msg_info "退出脚本"; break ;;
+            *) msg_warn "无效选择"; sleep 1 ;;
         esac
     done
 }

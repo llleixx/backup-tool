@@ -110,8 +110,9 @@ _uninstall_script() {
 
 uninstall_script() {
     msg_warn "警告：确定要卸载脚本吗？"
-    read -rp "您确定要继续吗？(y/N): " confirm
-    if [[ "${confirm,,}" == "y" ]]; then
+    local confirm
+    prompt_for_yes_no "您确定要继续吗？" confirm "n"
+    if [[ "$confirm" == "true" ]]; then
         _uninstall_script
         msg_ok "脚本已成功卸载。"
         exit 0
@@ -142,4 +143,123 @@ get_value_from_conf() {
 
 unset_config_vars() {
     unset CONFIG_ID BACKUP_FILES_LIST RESTIC_REPOSITORY RESTIC_PASSWORD ON_CALENDAR KEEP_DAILY KEEP_WEEKLY
+}
+
+update_config_value() {
+    local conf_file="$1"
+    local key="$2"
+    local new_value="$3"
+    sed -i -E "s/^($key=)[\"']?.*[\"']?$/\1\"$new_value\"/" "$conf_file"
+}
+
+update_config_if_set() {
+    local conf_file="$1"
+    local key="$2"
+    local new_value="$3"
+    if [[ -n "$new_value" ]]; then
+        update_config_value "$conf_file" "$key" "$new_value"
+    fi
+}
+
+# --- 输入函数 ---
+prompt_for_input() {
+    local prompt_message="$1"
+    local input_variable_name="$2"
+    local allow_empty="${3:-false}"
+    local user_input
+
+    while true; do
+        read -rp "$prompt_message" user_input
+        if [[ -n "$user_input" ]]; then
+            eval "$input_variable_name=\"\$user_input\""
+            break
+        elif [[ "$allow_empty" == "true" ]]; then
+            eval "$input_variable_name=\"\""
+            break
+        else
+            msg_err "错误：输入不能为空，请重新输入。"
+        fi
+    done
+}
+
+prompt_for_number() {
+    local prompt_message="$1"
+    local input_variable_name="$2"
+    local allow_empty="${3:-false}"
+    local user_input
+
+    while true; do
+        read -rp "$prompt_message" user_input
+        if [[ -z "$user_input" && "$allow_empty" == "true" ]]; then
+            eval "$input_variable_name=\"\""
+            break
+        elif [[ "$user_input" =~ ^[0-9]+$ ]]; then
+            eval "$input_variable_name=\"\$user_input\""
+            break
+        else
+            msg_err "错误：输入无效，请输入一个数字。"
+        fi
+    done
+}
+
+prompt_for_password() {
+    local prompt_message="$1"
+    local password_var="$2"
+    local allow_empty="${3:-false}"
+    local password_input password_confirm
+
+    while true; do
+        read -rsp "$prompt_message: " password_input
+        echo
+
+        if [[ -z "$password_input" && "$allow_empty" == "true" ]]; then
+            eval "$password_var=\"\""
+            break
+        elif [[ -z "$password_input" ]]; then
+            msg_err "密码不能为空，请重新输入"
+            continue
+        fi
+        
+        read -rsp "确认密码: " password_confirm
+        echo
+
+        if [[ "$password_input" == "$password_confirm" ]]; then
+            eval "$password_var=\"\$password_input\""
+            break
+        else
+            msg_err "密码不匹配，请重新输入"
+        fi
+    done
+}
+
+prompt_for_yes_no() {
+    local prompt_message="$1"
+    local result_var="$2"
+    local default_value="${3:-n}"
+    local choice
+
+    local prompt_suffix
+    if [[ "${default_value,,}" == "y" ]]; then
+        prompt_suffix="[Y/n]"
+    else
+        prompt_suffix="[y/N]"
+    fi
+
+    while true; do
+        read -rp "$prompt_message $prompt_suffix: " choice
+        choice=${choice:-$default_value}
+        case "${choice,,}" in
+            y|yes|true)
+                eval "$result_var=true"
+                break
+                ;;
+            n|no|false)
+                eval "$result_var=false"
+                break
+                ;;
+            *)
+                msg_warn "无效的输入，请输入 'y' 或 'n'。"
+                ;;
+        esac
+    done
 }
