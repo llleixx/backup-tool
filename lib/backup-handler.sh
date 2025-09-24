@@ -58,6 +58,7 @@ check_backup_dry_run() {
 }
 
 add_backup_config() {
+    clear
     msg_info "--- 添加备份配置 ---"
     local repo backup_files_list password on_calendar keep_daily keep_weekly
     

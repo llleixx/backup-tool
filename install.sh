@@ -136,7 +136,6 @@ ensure_restic_version() {
 
 get_repo_latest_version() {
     local repo="$1"
-    # 使用 jq 替代 grep/sed，解析更稳定
     curl -fsSL "https://api.github.com/repos/${repo}/releases/latest" | jq -r .tag_name
 }
 
@@ -177,7 +176,6 @@ EOF
 }
 
 main() {
-    # 添加 trap，确保脚本退出时自动清理临时文件
     trap 'rm -f /tmp/backup-tool-latest.tar.gz' EXIT
 
     check_root
