@@ -23,8 +23,12 @@ check_and_init_repository() {
             return 1
         fi
         msg_ok "Repository 初始化成功"
-    elif [[ $exit_code -eq 1 ]]; then
-        msg_err "错误：访问 repository 失败 (exit code 1)，可能是密码错误或其它连接问题"
+    elif [[ $exit_code -eq 11 ]]; then
+        msg_err "错误：仓库上锁失败"
+        unset RESTIC_REPOSITORY RESTIC_PASSWORD
+        return 1
+    elif [[ $exit_code -eq 12 ]]; then
+        msg_err "错误：仓库已存在，密码不正确"
         unset RESTIC_REPOSITORY RESTIC_PASSWORD
         return 1
     elif [[ $exit_code -ne 0 ]]; then
