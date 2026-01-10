@@ -7,7 +7,8 @@ fix:
  - title: '^fix:.*'
 
 docs:
- - changed-files: ['docs/**', '*.md']
+ - changed-files:
+  - any-glob-to-any-file: ['docs/**', '*.md']
  - title: '^docs:.*'
 
 refactor:
@@ -17,11 +18,13 @@ style:
  - title: '^style:.*'
 
 test:
- - changed-files: ['**/*.test.js', '**/*.spec.ts']
+ - changed-files: 
+  - any-glob-to-any-file: ['**/*.test.js', '**/*.spec.ts']
  - title: '^test:.*'
 
 ci:
- - changed-files: ['.github/**']
+ - changed-files: 
+  - any-glob-to-any-file: ['.github/**']
  - title: '^ci:.*'
 
 chore:
