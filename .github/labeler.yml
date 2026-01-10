@@ -1,0 +1,28 @@
+feat:
+ - head-branch: ['^feat/']
+ - title: '^feat:.*'
+
+fix:
+ - head-branch: ['^fix/']
+ - title: '^fix:.*'
+
+docs:
+ - changed-files: ['docs/**', '*.md']
+ - title: '^docs:.*'
+
+refactor:
+ - title: '^refactor:.*'
+
+style:
+ - title: '^style:.*'
+
+test:
+ - changed-files: ['**/*.test.js', '**/*.spec.ts']
+ - title: '^test:.*'
+
+ci:
+ - changed-files: ['.github/**']
+ - title: '^ci:.*'
+
+chore:
+ - title: '^chore:.*'
