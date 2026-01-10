@@ -1,31 +1,31 @@
 feat:
- - head-branch: ['^feat/']
- - title: '^feat:.*'
+  - head-branch: ['^feat/']
+  - title: '^feat:.*'
 
 fix:
- - head-branch: ['^fix/']
- - title: '^fix:.*'
+  - head-branch: ['^fix/']
+  - title: '^fix:.*'
 
 docs:
- - changed-files:
-  - any-glob-to-any-file: ['docs/**', '*.md']
- - title: '^docs:.*'
+  - changed-files:
+      - any-glob-to-any-file: ['docs/**', '*.md']
+  - title: '^docs:.*'
 
 refactor:
- - title: '^refactor:.*'
+  - title: '^refactor:.*'
 
 style:
- - title: '^style:.*'
+  - title: '^style:.*'
 
 test:
- - changed-files: 
-  - any-glob-to-any-file: ['**/*.test.js', '**/*.spec.ts']
- - title: '^test:.*'
+  - changed-files:
+      - any-glob-to-any-file: ['**/*.test.js', '**/*.spec.ts']
+  - title: '^test:.*'
 
 ci:
- - changed-files: 
-  - any-glob-to-any-file: ['.github/**']
- - title: '^ci:.*'
+  - changed-files:
+      - any-glob-to-any-file: ['.github/**']
+  - title: '^ci:.*'
 
 chore:
- - title: '^chore:.*'
+  - title: '^chore:.*'
