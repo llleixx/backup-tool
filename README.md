@@ -41,7 +41,7 @@
 使用以下一键安装命令即可完成安装。脚本会自动处理依赖项、设置目录和创建 `systemd` 通知服务。
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/llleixx/backup-tool/master/install.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/llleixx/backup-tool/main/install.sh)
 ```
 
 安装脚本会执行以下操作：
