@@ -1,0 +1,47 @@
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+      - duplicate
+      - invalid
+
+  categories:
+    - title: '⚠️ Breaking Changes'
+      labels:
+        - 'breaking-change'
+        - 'Semver-Major'
+
+    - title: '🚀 New Features'
+      labels:
+        - 'feat'
+        - 'feature'
+        - 'enhancement'
+
+    - title: '🐛 Bug Fixes'
+      labels:
+        - 'fix'
+        - 'bug'
+
+    - title: '📝 Documentation'
+      labels:
+        - 'docs'
+        - 'documentation'
+
+    - title: '💅 Refactors & Polish'
+      labels:
+        - 'refactor'
+        - 'style'
+
+    - title: '🧪 Tests & CI'
+      labels:
+        - 'test'
+        - 'ci'
+
+    - title: '🧰 Maintenance'
+      labels:
+        - 'chore'
+        - 'dependencies'
+
+    - title: '🔍 Other Changes'
+      labels:
+        - '*'
