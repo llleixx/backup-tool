@@ -8,7 +8,7 @@ fix:
 
 docs:
   - changed-files:
-      - any-glob-to-any-file: ['docs/**', '*.md']
+    - any-glob-to-any-file: ['docs/**', '*.md']
   - title: '^docs:.*'
 
 refactor:
@@ -19,12 +19,12 @@ style:
 
 test:
   - changed-files:
-      - any-glob-to-any-file: ['**/*.test.js', '**/*.spec.ts']
+    - any-glob-to-any-file: ['**/*.test.js', '**/*.spec.ts']
   - title: '^test:.*'
 
 ci:
   - changed-files:
-      - any-glob-to-any-file: ['.github/**']
+    - any-glob-to-any-file: ['.github/**']
   - title: '^ci:.*'
 
 chore:
