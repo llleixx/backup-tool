@@ -211,9 +211,9 @@ change_single_backup_config() {
     prompt_for_number "保留周数 [当前: $KEEP_WEEKLY] (留空保留)" new_weekly true
 
     # 6. Hook 脚本
-    prompt_for_hook_path "备份前 hook 脚本路径" new_pre_backup_hook true "$PRE_BACKUP_HOOK"
-    prompt_for_hook_path "备份成功后 hook 脚本路径" new_post_success_hook true "$POST_SUCCESS_HOOK"
-    prompt_for_hook_path "备份失败后 hook 脚本路径" new_post_failure_hook true "$POST_FAILURE_HOOK"
+    prompt_for_hook_path "备份前 hook 脚本路径" new_pre_backup_hook true "${PRE_BACKUP_HOOK:-}"
+    prompt_for_hook_path "备份成功后 hook 脚本路径" new_post_success_hook true "${POST_SUCCESS_HOOK:-}"
+    prompt_for_hook_path "备份失败后 hook 脚本路径" new_post_failure_hook true "${POST_FAILURE_HOOK:-}"
     
     # 7. 验证并保存配置
     if [[ -n "$new_repo" || "$change_pass" == "true" || -n "$new_list" ]]; then
