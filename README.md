@@ -75,6 +75,9 @@ bash <(curl -fsSL https://raw.githubusercontent.com/llleixx/backup-tool/main/ins
 `KEEP_DAILY`|`7`|在过去 7 天内，每天保留一个最新的快照
 `KEEP_WEEKLY`|`4`|在过去 4 周内，每周保留一个最新的快照
 `GROUP_BY`|`tags`|`restic` 备份时父镜像选择依据，默认为 `tags`，目前使用该脚本不能修改该选项
+`PRE_BACKUP_HOOK`|`/opt/backup/hooks/pre.sh`|备份开始前执行的脚本路径（可留空）
+`POST_SUCCESS_HOOK`|`/opt/backup/hooks/success.sh`|备份成功后执行的脚本路径（可留空）
+`POST_FAILURE_HOOK`|`/opt/backup/hooks/failure.sh`|备份失败后执行的脚本路径（可留空）
 
 ### 通知
 

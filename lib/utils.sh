@@ -141,15 +141,58 @@ get_value_from_conf() {
     grep -E "^${key}=" "$file" | sed -E "s/^${key}=[\"']?([^\"']*)[\"']?/\1/"
 }
 
+prompt_for_hook_path() {
+    local prompt_message="$1"
+    local input_variable_name="$2"
+    local allow_empty="${3:-true}"
+    local current_value="${4:-}"
+    local user_input
+
+    while true; do
+        if [[ -n "$current_value" ]]; then
+            read -rp "${prompt_message} [当前: ${current_value}] (留空保留, 输入 none 清空): " user_input
+            if [[ -z "$user_input" ]]; then
+                eval "$input_variable_name=\"__KEEP__\""
+                return
+            fi
+            if [[ "${user_input,,}" == "none" ]]; then
+                eval "$input_variable_name=\"\""
+                return
+            fi
+        else
+            read -rp "${prompt_message} (留空跳过): " user_input
+            if [[ -z "$user_input" ]]; then
+                if [[ "$allow_empty" == "true" ]]; then
+                    eval "$input_variable_name=\"\""
+                    return
+                fi
+                msg_err "错误：输入不能为空，请重新输入。"
+                continue
+            fi
+        fi
+
+        if [[ -f "$user_input" ]]; then
+            eval "$input_variable_name=\"\$user_input\""
+            return
+        fi
+        msg_warn "脚本文件不存在: $user_input"
+    done
+}
+
 unset_config_vars() {
     unset CONFIG_ID BACKUP_FILES_LIST RESTIC_REPOSITORY RESTIC_PASSWORD ON_CALENDAR KEEP_DAILY KEEP_WEEKLY
+    unset PRE_BACKUP_HOOK POST_SUCCESS_HOOK POST_FAILURE_HOOK
 }
 
 update_config_value() {
     local conf_file="$1"
     local key="$2"
     local new_value="$3"
-    sed -i -E "s/^($key=)[\"']?.*[\"']?$/\1\"$new_value\"/" "$conf_file"
+    if grep -q -E "^${key}=" "$conf_file"; then
+        sed -i -E "s/^($key=)[\"']?.*[\"']?$/\1\"$new_value\"/" "$conf_file"
+    else
+        echo "${key}=\"${new_value}\"" >> "$conf_file"
+    fi
 }
 
 update_config_if_set() {
