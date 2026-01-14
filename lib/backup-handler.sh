@@ -65,7 +65,6 @@ add_backup_config() {
     clear
     msg_info "--- 添加备份配置 ---"
     local repo backup_files_list password on_calendar keep_daily keep_weekly
-    local pre_backup_hook post_success_hook post_failure_hook
     
     # 1. 备份文件列表路径
     while true; do
@@ -113,16 +112,11 @@ add_backup_config() {
     prompt_for_number "保留周数 (weekly) [默认: 4]" keep_weekly true
     keep_weekly=${keep_weekly:-4}
 
-    # 6. Hook 脚本
-    prompt_for_hook_path "备份前 hook 脚本路径" pre_backup_hook true
-    prompt_for_hook_path "备份成功后 hook 脚本路径" post_success_hook true
-    prompt_for_hook_path "备份失败后 hook 脚本路径" post_failure_hook true
-
-    # 7. 验证配置
+    # 6. 验证配置
     check_and_init_repository "$repo" "$password" || return 1
     check_backup_dry_run "$repo" "$password" "$backup_files_list" || return 1
     
-    # 8. 保存配置
+    # 7. 保存配置
     local config_id conf_file
     config_id=backup-$(generate_id)
     conf_file="${CONF_DIR}/${config_id}.conf"
@@ -136,9 +130,6 @@ ON_CALENDAR="$on_calendar"
 KEEP_DAILY="$keep_daily"
 KEEP_WEEKLY="$keep_weekly"
 GROUP_BY="tags"
-PRE_BACKUP_HOOK="$pre_backup_hook"
-POST_SUCCESS_HOOK="$post_success_hook"
-POST_FAILURE_HOOK="$post_failure_hook"
 EOF
     msg_ok "配置保存成功"
     msg_info "应用系统服务..."
@@ -156,7 +147,6 @@ change_single_backup_config() {
     # shellcheck source=/dev/null
     source "$conf_file"
     local new_repo new_pass new_list new_calendar new_daily new_weekly change_pass
-    local new_pre_backup_hook new_post_success_hook new_post_failure_hook
     
     # 1. Repository
     prompt_for_input "Repository 地址 [当前: $RESTIC_REPOSITORY] (留空保留)" new_repo true
@@ -209,13 +199,8 @@ change_single_backup_config() {
     # 5. 保留策略
     prompt_for_number "保留天数 [当前: $KEEP_DAILY] (留空保留)" new_daily true
     prompt_for_number "保留周数 [当前: $KEEP_WEEKLY] (留空保留)" new_weekly true
-
-    # 6. Hook 脚本
-    prompt_for_hook_path "备份前 hook 脚本路径" new_pre_backup_hook true "${PRE_BACKUP_HOOK:-}"
-    prompt_for_hook_path "备份成功后 hook 脚本路径" new_post_success_hook true "${POST_SUCCESS_HOOK:-}"
-    prompt_for_hook_path "备份失败后 hook 脚本路径" new_post_failure_hook true "${POST_FAILURE_HOOK:-}"
     
-    # 7. 验证并保存配置
+    # 6. 验证并保存配置
     if [[ -n "$new_repo" || "$change_pass" == "true" || -n "$new_list" ]]; then
         msg_info "验证新配置..."
         local final_repo final_pass final_list
@@ -235,9 +220,6 @@ change_single_backup_config() {
     update_config_if_set "$conf_file" "ON_CALENDAR" "$new_calendar"
     update_config_if_set "$conf_file" "KEEP_DAILY" "$new_daily"
     update_config_if_set "$conf_file" "KEEP_WEEKLY" "$new_weekly"
-    update_config_if_change "$conf_file" "PRE_BACKUP_HOOK" "$new_pre_backup_hook"
-    update_config_if_change "$conf_file" "POST_SUCCESS_HOOK" "$new_post_success_hook"
-    update_config_if_change "$conf_file" "POST_FAILURE_HOOK" "$new_post_failure_hook"
     
     unset_config_vars
     msg_ok "配置保存成功"
@@ -259,9 +241,6 @@ _view_single_backup_config() {
         msg "  计划任务 (OnCalendar):  $(msg_ok "${ON_CALENDAR}")"
         msg "  保留策略 (daily):       $(msg_ok "${KEEP_DAILY}")"
         msg "  保留策略 (weekly):      $(msg_ok "${KEEP_WEEKLY}")"
-        msg "  备份前 hook:            $(msg_ok "${PRE_BACKUP_HOOK:-未设置}")"
-        msg "  备份成功后 hook:        $(msg_ok "${POST_SUCCESS_HOOK:-未设置}")"
-        msg "  备份失败后 hook:        $(msg_ok "${POST_FAILURE_HOOK:-未设置}")"
         msg "  密码:                   $(msg_warn "[已隐藏]")"
     )
     local timer_name="${config_id}.timer"
