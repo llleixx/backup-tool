@@ -195,6 +195,16 @@ update_config_value() {
     fi
 }
 
+update_config_if_change() {
+    local conf_file="$1"
+    local key="$2"
+    local new_value="$3"
+    if [[ "$new_value" == "__KEEP__" ]]; then
+        return
+    fi
+    update_config_value "$conf_file" "$key" "$new_value"
+}
+
 update_config_if_set() {
     local conf_file="$1"
     local key="$2"

@@ -235,15 +235,9 @@ change_single_backup_config() {
     update_config_if_set "$conf_file" "ON_CALENDAR" "$new_calendar"
     update_config_if_set "$conf_file" "KEEP_DAILY" "$new_daily"
     update_config_if_set "$conf_file" "KEEP_WEEKLY" "$new_weekly"
-    if [[ "$new_pre_backup_hook" != "__KEEP__" ]]; then
-        update_config_value "$conf_file" "PRE_BACKUP_HOOK" "$new_pre_backup_hook"
-    fi
-    if [[ "$new_post_success_hook" != "__KEEP__" ]]; then
-        update_config_value "$conf_file" "POST_SUCCESS_HOOK" "$new_post_success_hook"
-    fi
-    if [[ "$new_post_failure_hook" != "__KEEP__" ]]; then
-        update_config_value "$conf_file" "POST_FAILURE_HOOK" "$new_post_failure_hook"
-    fi
+    update_config_if_change "$conf_file" "PRE_BACKUP_HOOK" "$new_pre_backup_hook"
+    update_config_if_change "$conf_file" "POST_SUCCESS_HOOK" "$new_post_success_hook"
+    update_config_if_change "$conf_file" "POST_FAILURE_HOOK" "$new_post_failure_hook"
     
     unset_config_vars
     msg_ok "配置保存成功"

@@ -51,7 +51,7 @@ run_hook() {
 
 echo "[$(date)] -- 开始备份 (Config: ${CONF_FILE})"
 if ! run_hook "备份前" "${PRE_BACKUP_HOOK:-}"; then
-  exit 1
+  exit 21
 fi
 
 backup_status=0
@@ -69,12 +69,13 @@ if [[ $backup_status -ne 0 ]]; then
   echo "[$(date)] -- 备份失败 (Config: ${CONF_FILE})" >&2
   if ! run_hook "备份失败后" "${POST_FAILURE_HOOK:-}"; then
     echo "[$(date)] -- 备份失败后 hook 执行失败" >&2
+    exit 23
   fi
   exit "$backup_status"
 fi
 
 if ! run_hook "备份成功后" "${POST_SUCCESS_HOOK:-}"; then
-  exit 1
+  exit 22
 fi
 
 echo "[$(date)] -- 备份完成 (Config: ${CONF_FILE})"
