@@ -188,8 +188,10 @@ update_config_value() {
     local conf_file="$1"
     local key="$2"
     local new_value="$3"
+    local escaped_value
+    escaped_value=$(printf '%s' "$new_value" | sed -e 's/[\\&|]/\\&/g')
     if grep -q -E "^${key}=" "$conf_file"; then
-        sed -i -E "s/^($key=)[\"']?.*[\"']?$/\1\"$new_value\"/" "$conf_file"
+        sed -i -E "s|^($key=)[\"']?.*[\"']?$|\\1\"$escaped_value\"|" "$conf_file"
     else
         echo "${key}=\"${new_value}\"" >> "$conf_file"
     fi
