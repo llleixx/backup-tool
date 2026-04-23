@@ -537,18 +537,20 @@ restore_single_backup_config() {
     local valid_ids
     valid_ids=$(jq -r '.[] | .short_id // (.id[0:8])' <<< "$snapshot_json")
 
-    msg "可用快照（ID / 时间 / 主机 / 路径）:"
+    msg "可用快照:"
+    printf '  %-12s %-19s %-16s %s\n' "ID" "时间" "主机" "路径"
+    printf '  %-12s %-19s %-16s %s\n' "------------" "-------------------" "----------------" "----"
     jq -r '
         .[]
         | [
             (.short_id // (.id[0:8])),
             (.time // "" | sub("\\..*$"; "") | gsub("T"; " ")),
-            ("host=" + (.hostname // "-")),
-            ("paths=" + ((.paths // []) | join(",")))
+            (.hostname // "-"),
+            ((.paths // []) | join(", "))
           ]
         | @tsv
-    ' <<< "$snapshot_json" | while IFS=$'\t' read -r short_id snapshot_time host_info path_info; do
-        printf '  %-12s %-19s %s %s\n' "$short_id" "$snapshot_time" "$host_info" "$path_info"
+    ' <<< "$snapshot_json" | while IFS=$'\t' read -r short_id snapshot_time hostname snapshot_paths; do
+        printf '  %-12s %-19s %-16s %s\n' "$short_id" "$snapshot_time" "$hostname" "${snapshot_paths:--}"
     done
     echo
 
