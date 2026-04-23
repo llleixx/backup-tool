@@ -2,6 +2,11 @@
 #
 # 工具函数库
 
+if [[ -n "${BACKUP_TOOL_UTILS_SH_LOADED:-}" ]]; then
+    return 0 2>/dev/null || exit 0
+fi
+readonly BACKUP_TOOL_UTILS_SH_LOADED=1
+
 # --- 消息函数 ---
 msg() { echo -e "$@"; }
 msg_ok() { msg "${COLOR_GREEN-}$*${COLOR_NC-}"; }
