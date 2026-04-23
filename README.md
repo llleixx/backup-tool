@@ -44,13 +44,16 @@
 bash <(curl -fsSL https://raw.githubusercontent.com/llleixx/backup-tool/main/install.sh)
 ```
 
+安装脚本会通过 GitHub Release API 获取 `restic/restic` 的最新稳定版，并根据当前 Linux 架构安装到 `/usr/local/bin/restic`。
+
 安装脚本会执行以下操作：
 
 1. 检查 `root` 权限和 `systemd` 环境。
-2. 自动检测包管理器并安装所需依赖：`restic`, `msmtp`, `jq`, `curl`。
-3. 从 GitHub 下载最新的脚本文件到 `/opt/backup` 目录。
-4. 设置 `systemd` 模板服务，用于发送成功 / 失败通知。
-5. 创建软链接，让您可以在任意路径下通过 `but` 或 `backup-tool` 命令运行主程序。
+2. 自动检测包管理器并安装所需依赖：`msmtp`, `jq`, `curl`, `bzip2`。
+3. 通过 GitHub Release API 下载并安装最新 `restic`。
+4. 从 GitHub 下载最新的脚本文件到 `/opt/backup` 目录。
+5. 设置 `systemd` 模板服务，用于发送成功 / 失败通知。
+6. 创建软链接，让您可以在任意路径下通过 `but` 或 `backup-tool` 命令运行主程序。
 
 ## 🛠️ 使用方法
 
@@ -124,9 +127,10 @@ bash <(curl -fsSL https://raw.githubusercontent.com/llleixx/backup-tool/main/ins
 
 以下依赖会在安装过程中自动安装：
 
-- **restic (>= 0.17.0)**：核心备份工具。
+- **restic (>= 0.17.0)**：核心备份工具，通过 GitHub Release API 自动安装到 `/usr/local/bin/restic`。
 - **msmtp**：用于发送 Email 通知。
 - **jq**：用于解析 JSON 数据。
 - **curl**：用于下载脚本和发送 Telegram 通知。
+- **bzip2**：用于解压 `restic` 的 release 二进制包。
 
 推荐使用 [rclone](https://rclone.org/) 作为仓库存储。

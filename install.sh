@@ -4,6 +4,7 @@ set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 
 readonly REPO="llleixx/backup-tool"
+readonly RESTIC_REPO="restic/restic"
 
 readonly COLOR_GREEN='\033[0;32m'
 readonly COLOR_RED='\033[0;31m'
@@ -21,7 +22,7 @@ readonly ROOT_DIR="/opt/backup"
 readonly CONF_DIR="$ROOT_DIR/conf"
 readonly SCRIPT_DIR="$ROOT_DIR/lib"
 readonly SYSTEMD_DIR="/etc/systemd/system"
-readonly MIN_RESTIC_VERSION="0.17.0"
+readonly RESTIC_INSTALL_PATH="/usr/local/bin/restic"
 
 PKG_MANAGER=""
 
@@ -121,27 +122,118 @@ ensure_dependency() {
     fi
 }
 
-ensure_restic_version() {
-    local current_version
-    current_version=$(restic version | head -n1 | cut -d' ' -f2)
-    if [[ "$(printf '%s\n' "$MIN_RESTIC_VERSION" "$current_version" | sort -V | head -n1)" != "$MIN_RESTIC_VERSION" ]]; then
-        msg_warn "警告：您的 restic 版本 ($current_version) 过低，此脚本要求 restic >= $MIN_RESTIC_VERSION，开始自动更新"
-        if ! restic self-update; then
-            msg_err "错误：restic 更新失败，请使用 restic self-update 手动更新"
+normalize_version() {
+    printf '%s' "${1#v}"
+}
+
+version_lt() {
+    local left right
+    left=$(normalize_version "$1")
+    right=$(normalize_version "$2")
+    [[ "$left" != "$right" && "$(printf '%s\n' "$left" "$right" | sort -V | head -n1)" == "$left" ]]
+}
+
+get_github_latest_release_json() {
+    local repo="$1"
+    curl -fsSL \
+        -H "Accept: application/vnd.github+json" \
+        -H "X-GitHub-Api-Version: 2022-11-28" \
+        "https://api.github.com/repos/${repo}/releases/latest"
+}
+
+get_restic_linux_arch() {
+    case "$(uname -m)" in
+        x86_64|amd64) echo "amd64" ;;
+        i386|i486|i586|i686) echo "386" ;;
+        aarch64|arm64) echo "arm64" ;;
+        armv5*|armv6*|armv7*|armv8l|armhf) echo "arm" ;;
+        ppc64le) echo "ppc64le" ;;
+        riscv64) echo "riscv64" ;;
+        s390x) echo "s390x" ;;
+        mips64el|mips64le) echo "mips64le" ;;
+        mips64) echo "mips64" ;;
+        mipsel|mipsle) echo "mipsle" ;;
+        mips) echo "mips" ;;
+        *)
+            msg_err "错误：暂不支持的 Linux 架构: $(uname -m)"
             exit 1
-        fi
-        msg_ok "restic 已成功更新至最新版本"
+            ;;
+    esac
+}
+
+get_restic_release_asset_url() {
+    local release_json="$1"
+    local arch="$2"
+    local latest_version asset_name
+    latest_version=$(normalize_version "$(jq -er '.tag_name' <<< "$release_json")")
+    asset_name="restic_${latest_version}_linux_${arch}.bz2"
+
+    jq -er --arg asset_name "$asset_name" \
+        '.assets[] | select(.name == $asset_name) | .browser_download_url' \
+        <<< "$release_json" | head -n1
+}
+
+install_restic_from_github() {
+    if [[ "$(uname -s)" != "Linux" ]]; then
+        msg_err "错误：restic GitHub 安装流程仅支持 Linux"
+        exit 1
+    fi
+
+    local current_path=""
+    local current_version=""
+    local release_json latest_tag latest_version arch asset_url
+    local tmp_archive tmp_binary
+
+    if command -v restic &>/dev/null; then
+        current_path=$(command -v restic)
+        current_version=$(restic version | head -n1 | awk '{print $2}')
+    fi
+
+    release_json=$(get_github_latest_release_json "$RESTIC_REPO")
+    latest_tag=$(jq -er '.tag_name' <<< "$release_json")
+    latest_version=$(normalize_version "$latest_tag")
+    arch=$(get_restic_linux_arch)
+    asset_url=$(get_restic_release_asset_url "$release_json" "$arch")
+
+    if [[ -n "$current_version" && "$current_path" == "$RESTIC_INSTALL_PATH" ]] && ! version_lt "$current_version" "$latest_version"; then
+        msg_ok "restic 已是最新版本 (${current_version#v})，安装位置: $RESTIC_INSTALL_PATH"
+        return 0
+    fi
+
+    if [[ -n "$current_version" ]]; then
+        msg_info "检测到现有 restic: ${current_path} (${current_version#v})"
+    fi
+
+    msg_info "正在从 GitHub Release 安装 restic ${latest_version} (${arch})..."
+    tmp_archive=$(mktemp -t "restic_${latest_version}_${arch}_XXXXXX.bz2")
+    tmp_binary=$(mktemp -t "restic_bin_XXXXXX")
+
+    curl -fsSL -o "$tmp_archive" "$asset_url"
+    bzip2 -dc "$tmp_archive" > "$tmp_binary"
+    install -m 0755 "$tmp_binary" "$RESTIC_INSTALL_PATH"
+    rm -f "$tmp_archive" "$tmp_binary"
+
+    if ! "$RESTIC_INSTALL_PATH" version &>/dev/null; then
+        msg_err "错误：restic 安装完成后验证失败"
+        exit 1
+    fi
+
+    if [[ -n "$current_version" ]]; then
+        msg_ok "restic 已更新为 ${latest_version}，安装位置: $RESTIC_INSTALL_PATH"
+    else
+        msg_ok "restic 已安装为 ${latest_version}，安装位置: $RESTIC_INSTALL_PATH"
     fi
 }
 
 get_repo_latest_version() {
     local repo="$1"
-    curl -fsSL "https://api.github.com/repos/${repo}/releases/latest" | jq -r .tag_name
+    get_github_latest_release_json "$repo" | jq -er '.tag_name'
 }
 
 get_repo_latest_source_code() {
     local repo="$1"
     local target="$2"
+    local latest_version
     latest_version=$(get_repo_latest_version "$repo")
     target="${target:-./${repo##*/}-${latest_version}.tar.gz}"
     curl -fsSL -o "$target" "https://github.com/${repo}/archive/refs/tags/${latest_version}.tar.gz"
@@ -180,11 +272,11 @@ main() {
 
     check_root
     check_systemd
-    ensure_dependency restic
-    ensure_restic_version
     ensure_dependency curl
-    ensure_dependency msmtp
     ensure_dependency jq
+    ensure_dependency bzip2
+    install_restic_from_github
+    ensure_dependency msmtp
 
     msg_info "正在创建工作目录..."
     mkdir -p "$ROOT_DIR" "$CONF_DIR" "$SCRIPT_DIR"

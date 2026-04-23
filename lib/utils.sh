@@ -30,19 +30,23 @@ check_restic_version() {
     current_version=$(restic version | head -n1 | cut -d' ' -f2)
     if [[ "$(printf '%s\n' "$MIN_RESTIC_VERSION" "$current_version" | sort -V | head -n1)" != "$MIN_RESTIC_VERSION" ]]; then
         msg_err "错误：您的 restic 版本 ($current_version) 过低。此脚本要求 restic >= $MIN_RESTIC_VERSION。"
-        msg_err "你可以使用 restic self-update 命令来更新 restic。"
+        msg_err "请卸载旧版本 restic，并重新运行安装脚本 https://github.com/llleixx/backup-tool/blob/main/install.sh。"
         exit 1
     fi
 }
 
 get_repo_latest_version() {
     local repo="$1"
-    curl -fsSL "https://api.github.com/repos/${repo}/releases/latest" | jq -r .tag_name
+    curl -fsSL \
+        -H "Accept: application/vnd.github+json" \
+        -H "X-GitHub-Api-Version: 2022-11-28" \
+        "https://api.github.com/repos/${repo}/releases/latest" | jq -er '.tag_name'
 }
 
 get_repo_latest_source_code() {
     local repo="$1"
     local target="$2"
+    local latest_version
     latest_version=$(get_repo_latest_version "$repo")
     target="${target:-./${repo##*/}-${latest_version}.tar.gz}"
     curl -fsSL -o "$target" "https://github.com/${repo}/archive/refs/tags/${latest_version}.tar.gz"
