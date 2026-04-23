@@ -357,7 +357,14 @@ main() {
 
     msg_ok "\n安装完成！"
     msg_info "现在可以运行 'backup-tool' 或者 'but' 来开始配置备份任务"
-    sleep 2
+
+    if [[ -t 0 ]]; then
+        echo
+        read -r -n 1 -s -p "按任意键继续启动 backup-tool..."
+        echo
+    else
+        msg_info "检测到非交互环境，跳过按键等待，继续启动 backup-tool"
+    fi
 
     exec bash -l -c "${ROOT_DIR}/backup-tool.sh"
 }
