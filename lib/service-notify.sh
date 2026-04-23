@@ -2,8 +2,6 @@
 #
 # 通用通知调度库 
 
-set -euo pipefail
-
 set_readonly_var() {
     if [[ -z "${!1-}" ]]; then
         readonly "$1"="$2"
@@ -20,30 +18,30 @@ process_notify() {
     local conf_file="$1"
     local subject="$2"
     local body="$3"
+    local notify_type sender_script
 
-(
-    # shellcheck source=/dev/null
-    source "$conf_file"
+    notify_type=$(get_value_from_conf "$conf_file" "NOTIFY_TYPE")
+    echo "-> 正在为 '$conf_file' (类型: ${notify_type:-未设置}) 分发通知..." >&2
 
-    echo "-> 正在为 '$conf_file' (类型: ${NOTIFY_TYPE:-未设置}) 分发通知..." >&2
-
-    case "${NOTIFY_TYPE:-}" in
+    case "${notify_type:-}" in
         email|telegram)
-            local sender_script="${SCRIPT_DIR}/notify-${NOTIFY_TYPE}.sh"
+            sender_script="${SCRIPT_DIR}/notify-${notify_type}.sh"
             if [[ -x "$sender_script" ]]; then
                 echo "$body" | "$sender_script" "$conf_file" "$subject"
             else
                 echo "错误: 发送脚本 '$sender_script' 未找到或不可执行。" >&2
+                return 1
             fi
             ;;
         "")
             echo "错误: 配置文件 '$conf_file' 中未定义 NOTIFY_TYPE。" >&2
+            return 1
             ;;
         *)
-            echo "警告: 配置文件 '$conf_file' 中定义了未知的 NOTIFY_TYPE: '${NOTIFY_TYPE}'。" >&2
+            echo "警告: 配置文件 '$conf_file' 中定义了未知的 NOTIFY_TYPE: '${notify_type}'。" >&2
+            return 1
             ;;
     esac
-)
 }
 
 # --- 核心调度函数 ---
@@ -84,7 +82,9 @@ process_event() {
     shopt -s nullglob
     for conf_file in "${CONF_DIR}"/notify-*.conf; do
         get_value_from_conf "$conf_file" "$check_variable" | grep -iq "^true$" || continue
-        process_notify "$conf_file" "$subject" "$body"
+        if ! process_notify "$conf_file" "$subject" "$body"; then
+            echo "警告: 通知发送失败，已继续处理后续配置: $conf_file" >&2
+        fi
     done
     shopt -u nullglob
 

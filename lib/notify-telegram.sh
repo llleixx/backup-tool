@@ -5,6 +5,10 @@
 
 set -euo pipefail
 
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+
+source "${SCRIPT_DIR}/utils.sh"
+
 # --- 依赖检查 ---
 if ! command -v curl &>/dev/null; then
     echo "[TELEGRAM] 错误: 'curl' 命令未找到，请先安装它。" >&2
@@ -37,13 +41,9 @@ if [[ -z "$BODY_CONTENT" ]]; then
     echo "[TELEGRAM] 警告: 消息正文为空。" >&2
 fi
 
-# --- 从配置文件加载变量 ---
-# shellcheck source=/dev/null
-source "$CONF_FILE"
-
 # --- 检查必要的配置是否存在 ---
-: "${TELEGRAM_BOT_TOKEN?TELEGRAM_BOT_TOKEN 未在配置文件中设置}"
-: "${TELEGRAM_CHAT_ID?TELEGRAM_CHAT_ID 未在配置文件中设置}"
+TELEGRAM_BOT_TOKEN=$(config_get_required "$CONF_FILE" "TELEGRAM_BOT_TOKEN") || exit 1
+TELEGRAM_CHAT_ID=$(config_get_required "$CONF_FILE" "TELEGRAM_CHAT_ID") || exit 1
 
 # --- 组合纯文本消息 ---
 # 将标题和正文简单地组合在一起，用换行符分隔。

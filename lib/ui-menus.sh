@@ -2,6 +2,31 @@
 #
 # 菜单显示和处理脚本
 
+count_config_files() {
+    local prefix="$1"
+    local count=0
+    local conf_file
+
+    for conf_file in "${CONF_DIR}"/"${prefix}"*.conf; do
+        [[ -f "$conf_file" ]] || continue
+        ((count++))
+    done
+
+    printf '%s' "$count"
+}
+
+run_menu_action() {
+    local callback="$1"
+    shift
+
+    if ! "$callback" "$@"; then
+        msg_err "操作失败，请查看上面的错误信息。"
+        return 1
+    fi
+
+    return 0
+}
+
 select_backup_config_menu() {
     local title="$1"
     local callback_single="$2"
@@ -18,12 +43,13 @@ select_backup_config_menu() {
         config_ids+=("$id")
     done
     if [[ ${#configs_map[@]} -eq 0 ]]; then
-        msg_warn "配置目录 '${CONF_DIR}' 中没有任何 '${prefix}*.conf' 文件"
+        msg_warn "还没有备份配置，请先在主菜单选择“添加备份”。"
         pause
         return
     fi
     clear
     msg_info "--- ${title} ---"
+    msg "当前共有 ${#configs_map[@]} 个备份配置。"
     msg "选择一个备份配置:"
     local i=1
     for item in "${configs_map[@]}"; do
@@ -31,14 +57,14 @@ select_backup_config_menu() {
         ((i++))
     done
     if [[ -n "$callback_all" ]]; then msg_ok " a) 所有配置"; fi
-    msg_warn " b) 返回"
+    msg_warn " b) 返回上一级"
     local choice
     prompt_for_input "选择" choice
     if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le ${#configs_map[@]} ]; then
         local selected_id=${config_ids[$choice-1]}
-        "$callback_single" "$selected_id"
+        run_menu_action "$callback_single" "$selected_id" || true
     elif [[ -n "$callback_all" && "${choice,,}" == "a" ]]; then
-        "$callback_all" "${config_ids[@]}"
+        run_menu_action "$callback_all" "${config_ids[@]}" || true
     elif [[ "${choice,,}" == "b" ]]; then
         return
     else
@@ -67,12 +93,13 @@ select_notify_config_menu() {
         config_ids+=("$id")
     done
     if [[ ${#configs_map[@]} -eq 0 ]]; then
-        msg_warn "没有可用的通知配置"
+        msg_warn "还没有通知配置，请先在主菜单选择“添加通知”。"
         pause
         return
     fi
     clear
     msg_info "--- ${title} ---"
+    msg "当前共有 ${#configs_map[@]} 个通知配置。"
     msg "选择一个通知配置:"
     local i=1
     for item in "${configs_map[@]}"; do
@@ -80,14 +107,14 @@ select_notify_config_menu() {
         ((i++))
     done
     if [[ -n "$callback_all" ]]; then msg_ok " a) 所有配置"; fi
-    msg_warn " b) 返回"
+    msg_warn " b) 返回上一级"
     local choice
     prompt_for_input "选择" choice
     if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le ${#configs_map[@]} ]; then
         local selected_id=${config_ids[$choice-1]}
-        "$callback_single" "$selected_id"
+        run_menu_action "$callback_single" "$selected_id" || true
     elif [[ -n "$callback_all" && "${choice,,}" == "a" ]]; then
-        "$callback_all" "${config_ids[@]}"
+        run_menu_action "$callback_all" "${config_ids[@]}" || true
     elif [[ "${choice,,}" == "b" ]]; then
         return
     else
@@ -97,10 +124,16 @@ select_notify_config_menu() {
 }
 
 show_menu() {
+    local backup_count notify_count
+    backup_count=$(count_config_files "backup-")
+    notify_count=$(count_config_files "notify-")
+
     clear
     msg_info "====================================="
     msg_info "          Backup Tool $VERSION"
     msg_info "====================================="
+    msg "备份配置: ${backup_count} 个 | 通知配置: ${notify_count} 个"
+    msg_info "-------------------------------------"
     msg "选择操作:"
     msg_ok " 1. 添加备份"
     msg_ok " 2. 修改备份"
@@ -127,7 +160,7 @@ advanced_settings_menu() {
         msg_info "====================================="
         msg_ok " 1. 立即备份"
         msg_ok " 2. 恢复备份"
-        msg_ok " 3. 通知测试"
+        msg_ok " 3. 测试通知"
         msg_ok " 4. 更新脚本"
         msg_ok " 5. 安装 rclone"
         msg_warn " b. 返回主菜单"
@@ -137,8 +170,16 @@ advanced_settings_menu() {
             1) select_backup_config_menu "立即备份" "backup_single_backup_config" ;;
             2) select_backup_config_menu "恢复备份" "restore_single_backup_config" ;;
             3) select_notify_config_menu "通知测试" "test_single_notify_config" ;;
-            4) self_update ;;
-            5) install_rclone ;;
+            4)
+                if run_menu_action "self_update"; then
+                    if [[ "${SELF_UPDATE_RESTART_REQUIRED:-false}" == "true" ]]; then
+                        exec "${ROOT_DIR}/backup-tool.sh"
+                    fi
+                else
+                    pause
+                fi
+                ;;
+            5) run_menu_action "install_rclone" || pause ;;
             b|B) break ;;
             *) msg_warn "无效选择"; sleep 1 ;;
         esac

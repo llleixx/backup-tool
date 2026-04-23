@@ -4,7 +4,7 @@
 # 主执行文件
 
 # --- 全局设置 ---
-set -euo pipefail -E
+set -uo pipefail -E
 trap 'error_handler' ERR
 
 error_handler() {
@@ -33,6 +33,14 @@ source "${_ROOT_DIR}/lib/ui-menus.sh"
 main() {
     # 初始化检查
     check_root
+    check_dependency jq
+    check_dependency restic
+    check_restic_version
+    ensure_config_storage_permissions
+    if ! migrate_all_configs_if_needed; then
+        msg_warn "部分旧配置未能自动迁移，脚本会继续使用安全解析模式读取它们。"
+        pause
+    fi
 
     # 进入主菜单循环
     while true; do
@@ -40,12 +48,12 @@ main() {
         local choice
         prompt_for_input "选择" choice
         case "$choice" in
-            1) add_backup_config ;;
+            1) run_menu_action "add_backup_config" || pause ;;
             2) select_backup_config_menu "修改备份配置" "change_single_backup_config" ;;
             3) select_backup_config_menu "查看备份配置" "view_single_backup_config" "view_all_backup_configs" ;;
             4) select_backup_config_menu "删除备份配置" "delete_single_backup_config" "delete_all_backup_configs" ;;
             5) select_backup_config_menu "应用备份配置" "apply_single_backup_config" "apply_all_backup_configs";;
-            6) add_notify_config ;;
+            6) run_menu_action "add_notify_config" || pause ;;
             7) select_notify_config_menu "修改通知配置" "change_single_notify_config" ;;
             8) select_notify_config_menu "查看通知配置" "view_single_notify_config" "view_all_notify_configs" ;;
             9) select_notify_config_menu "删除通知配置" "delete_single_notify_config" "delete_all_notify_configs" ;;
