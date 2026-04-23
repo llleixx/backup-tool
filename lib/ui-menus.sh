@@ -9,7 +9,7 @@ count_config_files() {
 
     for conf_file in "${CONF_DIR}"/"${prefix}"*.conf; do
         [[ -f "$conf_file" ]] || continue
-        ((count++))
+        ((count += 1))
     done
 
     printf '%s' "$count"
@@ -54,7 +54,7 @@ select_backup_config_menu() {
     local i=1
     for item in "${configs_map[@]}"; do
         msg " ${i}) ${item}"
-        ((i++))
+        ((i += 1))
     done
     if [[ -n "$callback_all" ]]; then msg_ok " a) 所有配置"; fi
     msg_warn " b) 返回上一级"
@@ -104,7 +104,7 @@ select_notify_config_menu() {
     local i=1
     for item in "${configs_map[@]}"; do
         msg " ${i}) ${item}"
-        ((i++))
+        ((i += 1))
     done
     if [[ -n "$callback_all" ]]; then msg_ok " a) 所有配置"; fi
     msg_warn " b) 返回上一级"
