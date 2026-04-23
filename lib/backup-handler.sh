@@ -84,7 +84,7 @@ add_backup_config() {
             continue
         fi
         msg_warn "文件不存在，正在创建: $backup_files_list"
-        if ! echo -e "/opt/backup/conf\n/opt/backup/backup_list.txt" > "$backup_files_list"
+        if ! printf '%s\n%s\n' "/opt/backup/conf" "$backup_files_list" > "$backup_files_list"
         then
             msg_err "无法创建文件，请检查权限"
         else
@@ -196,7 +196,7 @@ change_single_backup_config() {
             continue
         fi
         msg_warn "文件不存在，正在创建: $new_list"
-        if ! echo -e "/opt/backup/conf\n/opt/backup/backup_list.txt" > "$new_list"
+        if ! printf '%s\n%s\n' "/opt/backup/conf" "$new_list" > "$new_list"
         then
             msg_err "无法创建文件，请检查权限"
         else
@@ -493,7 +493,7 @@ backup_single_backup_config() {
 restore_single_backup_config() {
     local config_id="$1"
     local conf_file="${CONF_DIR}/${config_id}.conf"
-    local repository password
+    local repository password config_tag
     local snapshot_json
 
     if [[ ! -f "$conf_file" ]]; then
@@ -505,6 +505,7 @@ restore_single_backup_config() {
     msg_info "--- 从配置 [ID: ${config_id}] 恢复备份 ---"
     repository=$(config_get_required "$conf_file" "RESTIC_REPOSITORY") || return 1
     password=$(config_get_optional "$conf_file" "RESTIC_PASSWORD" "")
+    config_tag=$(config_get_required "$conf_file" "CONFIG_ID") || return 1
 
     export RESTIC_REPOSITORY="$repository"
     export RESTIC_PASSWORD="$password"
@@ -518,12 +519,21 @@ restore_single_backup_config() {
         unset RESTIC_REPOSITORY RESTIC_PASSWORD
         return 1
     fi
+
+    if ! snapshot_json=$(jq -c --arg config_tag "$config_tag" \
+        '[.[] | select((.tags // []) | index($config_tag))]' <<< "$snapshot_json"); then
+        msg_err "错误：筛选当前配置的快照失败"
+        unset RESTIC_REPOSITORY RESTIC_PASSWORD
+        return 1
+    fi
+
     if [[ "$(jq 'length' <<< "$snapshot_json")" -eq 0 ]]; then
-        msg_warn "此 Repository 中没有快照"
+        msg_warn "此 Repository 中没有属于当前配置 (${config_tag}) 的快照"
         unset RESTIC_REPOSITORY RESTIC_PASSWORD
         return 0
     fi
 
+    msg_info "仅显示属于当前配置 (${config_tag}) 的快照"
     local valid_ids
     valid_ids=$(jq -r '.[] | .short_id // (.id[0:8])' <<< "$snapshot_json")
 

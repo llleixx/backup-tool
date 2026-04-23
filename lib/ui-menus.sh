@@ -170,15 +170,7 @@ advanced_settings_menu() {
             1) select_backup_config_menu "立即备份" "backup_single_backup_config" ;;
             2) select_backup_config_menu "恢复备份" "restore_single_backup_config" ;;
             3) select_notify_config_menu "通知测试" "test_single_notify_config" ;;
-            4)
-                if run_menu_action "self_update"; then
-                    if [[ "${SELF_UPDATE_RESTART_REQUIRED:-false}" == "true" ]]; then
-                        exec "${ROOT_DIR}/backup-tool.sh"
-                    fi
-                else
-                    pause
-                fi
-                ;;
+            4) run_menu_action "self_update" || pause ;;
             5) run_menu_action "install_rclone" || pause ;;
             b|B) break ;;
             *) msg_warn "无效选择"; sleep 1 ;;

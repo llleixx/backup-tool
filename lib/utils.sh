@@ -87,41 +87,33 @@ install_rclone() {
 
 self_update() {
     local latest_version
-    local tmp_file tmp_dir
-    SELF_UPDATE_RESTART_REQUIRED="false"
+    local tmp_install_script
 
     if ! latest_version=$(get_repo_latest_version "$REPO"); then
         msg_err "错误：获取最新版本信息失败，请稍后重试。"
         return 1
     fi
 
-    if [[ "$latest_version" != "$VERSION" ]]; then
-        msg_info "检测到新版本 $latest_version，当前版本 $VERSION，开始更新..."
-        tmp_file="/tmp/backup-tool-update-${latest_version}.tar.gz"
-        tmp_dir="$(mktemp -d -t backup-tool-update-XXXXXX)"
-
-        if ! get_repo_latest_source_code "$REPO" "$tmp_file"; then
-            rm -rf "$tmp_dir" "$tmp_file"
-            msg_err "错误：下载更新包失败，请手动更新。"
-            return 1
-        fi
-
-        if tar -xzf "$tmp_file" -C "$tmp_dir" --strip-components=1; then
-            cp -r "$tmp_dir/"* "${ROOT_DIR}/"
-            rm -rf "$tmp_dir" "$tmp_file"
-            msg_ok "更新成功！请重新运行脚本以使用最新版本。"
-            SELF_UPDATE_RESTART_REQUIRED="true"
-            return 0
-        else
-            rm -rf "$tmp_dir" "$tmp_file"
-            msg_err "错误：解压更新包失败，请手动更新。"
-            return 1
-        fi
-    else
+    if [[ "$latest_version" == "$VERSION" ]]; then
         msg_ok "当前已是最新版本 ($VERSION)。"
         pause
         return 0
     fi
+
+    msg_info "检测到新版本 $latest_version，当前版本 $VERSION，开始执行完整升级..."
+    tmp_install_script=$(mktemp -t backup-tool-install-XXXXXX.sh)
+
+    if ! curl -fsSL -o "$tmp_install_script" "https://raw.githubusercontent.com/${REPO}/main/install.sh"; then
+        rm -f "$tmp_install_script"
+        msg_err "错误：下载最新安装脚本失败，请稍后重试。"
+        return 1
+    fi
+
+    chmod +x "$tmp_install_script"
+    msg_info "正在调用最新安装脚本完成升级..."
+    exec 3<"$tmp_install_script"
+    rm -f "$tmp_install_script"
+    exec bash /dev/fd/3
 }
 
 _uninstall_script() {

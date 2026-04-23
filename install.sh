@@ -23,6 +23,7 @@ readonly CONF_DIR="$ROOT_DIR/conf"
 readonly SCRIPT_DIR="$ROOT_DIR/lib"
 readonly SYSTEMD_DIR="/etc/systemd/system"
 readonly RESTIC_INSTALL_PATH="/usr/local/bin/restic"
+readonly MANAGED_MANIFEST_PATH="${ROOT_DIR}/.managed-manifest"
 
 PKG_MANAGER=""
 
@@ -239,6 +240,62 @@ get_repo_latest_source_code() {
     curl -fsSL -o "$target" "https://github.com/${repo}/archive/refs/tags/${latest_version}.tar.gz"
 }
 
+cleanup_legacy_managed_paths() {
+    rm -rf \
+        "${ROOT_DIR}/.github" \
+        "${ROOT_DIR}/lib"
+    rm -f \
+        "${ROOT_DIR}/.gitignore" \
+        "${ROOT_DIR}/LICENSE" \
+        "${ROOT_DIR}/README.md" \
+        "${ROOT_DIR}/backup-tool.sh" \
+        "${ROOT_DIR}/install.sh"
+}
+
+cleanup_previous_managed_paths() {
+    local rel_path
+
+    if [[ ! -f "$MANAGED_MANIFEST_PATH" ]]; then
+        cleanup_legacy_managed_paths
+        return 0
+    fi
+
+    while IFS= read -r rel_path || [[ -n "$rel_path" ]]; do
+        [[ -n "$rel_path" ]] || continue
+        case "$rel_path" in
+            conf|conf/*|hooks|hooks/*|backup_list.txt)
+                continue
+                ;;
+        esac
+        rm -rf "${ROOT_DIR}/${rel_path}"
+    done < "$MANAGED_MANIFEST_PATH"
+}
+
+write_managed_manifest() {
+    local source_dir="$1"
+    local tmp_manifest
+
+    tmp_manifest=$(mktemp -p "$ROOT_DIR" ".managed-manifest.tmp.XXXXXX")
+    (
+        cd "$source_dir"
+        find . -mindepth 1 -printf '%P\n' | LC_ALL=C sort
+    ) > "$tmp_manifest"
+    mv "$tmp_manifest" "$MANAGED_MANIFEST_PATH"
+}
+
+install_project_files() {
+    local archive_path="$1"
+    local extract_dir
+
+    extract_dir="$(mktemp -d -t backup-tool-src-XXXXXX)"
+    tar -xzf "$archive_path" -C "$extract_dir" --strip-components=1
+
+    cleanup_previous_managed_paths
+    cp -a "$extract_dir"/. "$ROOT_DIR"/
+    write_managed_manifest "$extract_dir"
+    rm -rf "$extract_dir"
+}
+
 setup_notification_services() {
     local failure_service_path="${SYSTEMD_DIR}/service-failure-notify@.service"
     local success_service_path="${SYSTEMD_DIR}/service-success-notify@.service"
@@ -268,7 +325,9 @@ EOF
 }
 
 main() {
-    trap 'rm -f /tmp/backup-tool-latest.tar.gz' EXIT
+    local source_archive
+    source_archive=$(mktemp -t backup-tool-latest-XXXXXX.tar.gz)
+    trap '[[ -n "${source_archive-}" ]] && rm -f "${source_archive}"' EXIT
 
     check_root
     check_systemd
@@ -282,11 +341,12 @@ main() {
     mkdir -p "$ROOT_DIR" "$CONF_DIR" "$SCRIPT_DIR"
 
     msg_info "正在从 GitHub 获取最新版本的源码..."
-    get_repo_latest_source_code "$REPO" "/tmp/backup-tool-latest.tar.gz"
+    get_repo_latest_source_code "$REPO" "$source_archive"
 
-    msg_info "正在解压源码到 ${ROOT_DIR}..."
-    tar -xzf /tmp/backup-tool-latest.tar.gz -C "$ROOT_DIR" --strip-components=1
-    chmod +x ${ROOT_DIR}/*.sh ${SCRIPT_DIR}/*.sh
+    msg_info "正在安装源码到 ${ROOT_DIR}..."
+    install_project_files "$source_archive"
+    rm -f "$source_archive"
+    chmod +x "${ROOT_DIR}"/*.sh "${SCRIPT_DIR}"/*.sh
 
     msg_info "正在设置 systemd 通知服务..."
     setup_notification_services
