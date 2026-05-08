@@ -39,6 +39,7 @@ BACKUP_CMD+=("--group-by" "${GROUP_BY}")
 
 # --- 构建清理命令 ---
 FORGET_CMD=("$RESTIC_BIN" "${RESTIC_OPTS[@]}" "forget" "--keep-daily" "${KEEP_DAILY}" "--keep-weekly" "${KEEP_WEEKLY}" "--prune")
+FORGET_CMD+=("--tag" "${CONFIG_ID}")
 FORGET_CMD+=("--group-by" "${GROUP_BY}")
 
 run_hook() {
