@@ -296,32 +296,96 @@ install_project_files() {
     rm -rf "$extract_dir"
 }
 
-setup_notification_services() {
-    local failure_service_path="${SYSTEMD_DIR}/service-failure-notify@.service"
-    local success_service_path="${SYSTEMD_DIR}/service-success-notify@.service"
+generate_backup_timer_unit() {
+    local config_id="$1"
+    local conf_file="${CONF_DIR}/${config_id}.conf"
+    local old_service_unit="${config_id}.service"
+    local old_timer_unit="${config_id}.timer"
+    local on_calendar
 
-    cat > "$failure_service_path" << EOF
-[Unit]
-Description=Notify user of service failure for %i
+    if [[ ! -f "$conf_file" ]]; then
+        msg_warn "找不到备份配置文件，跳过: $conf_file"
+        return 1
+    fi
 
-[Service]
-Type=oneshot
-User=root
-ExecStart=${SCRIPT_DIR}/service-failure-notify.sh %i
-EOF
-    msg_ok "'service-failure-notify@.service' 已创建"
+    on_calendar=$(get_value_from_conf "$conf_file" "ON_CALENDAR")
+    if [[ -z "$on_calendar" ]]; then
+        msg_warn "备份配置缺少 ON_CALENDAR，跳过: $conf_file"
+        return 1
+    fi
 
-    cat > "$success_service_path" << EOF
-[Unit]
-Description=Notify user of service success for %i
+    rm -f "${SYSTEMD_DIR}/${old_timer_unit}"
+    rm -f "${SYSTEMD_DIR}/${old_service_unit}"
+    write_backup_timer_unit "$config_id" "$on_calendar"
+}
 
-[Service]
-Type=oneshot
-User=root
-ExecStart=${SCRIPT_DIR}/service-success-notify.sh %i
-EOF
-    msg_ok "'service-success-notify@.service' 已创建"
+migrate_existing_backup_units_to_template_service() {
+    local conf_file config_id
+    local old_service_unit old_timer_unit new_service_unit new_timer_unit
+    local was_enabled was_active should_enable should_start
+    local migrated_count=0 fail_count=0
+    local -a migrated_entries=()
+
+    shopt -s nullglob
+    for conf_file in "${CONF_DIR}"/backup-*.conf; do
+        config_id=$(basename "$conf_file" .conf)
+        old_service_unit="${config_id}.service"
+        old_timer_unit="${config_id}.timer"
+        new_service_unit=$(backup_service_unit_name "$config_id")
+        new_timer_unit=$(backup_timer_unit_name "$config_id")
+        was_enabled=$(systemctl is-enabled "$old_timer_unit" 2>/dev/null || true)
+        was_active=$(systemctl is-active "$old_timer_unit" 2>/dev/null || true)
+
+        case "$was_enabled" in
+            enabled|enabled-runtime|linked|linked-runtime) should_enable=true ;;
+            *) should_enable=false ;;
+        esac
+
+        if [[ "$was_active" == "active" ]]; then
+            should_start=true
+        else
+            should_start=false
+        fi
+
+        msg_info "正在迁移 ${old_timer_unit} 到 ${new_timer_unit}..."
+        systemctl disable --now "$old_timer_unit" &>/dev/null || true
+        systemctl stop "$new_service_unit" "$old_service_unit" &>/dev/null || true
+
+        if generate_backup_timer_unit "$config_id"; then
+            migrated_entries+=("${new_timer_unit}:${should_enable}:${should_start}")
+            ((++migrated_count))
+        else
+            msg_warn "迁移 ${old_timer_unit} 失败，已跳过。"
+            ((++fail_count))
+        fi
+    done
+    shopt -u nullglob
+
+    if [[ $migrated_count -eq 0 && $fail_count -eq 0 ]]; then
+        return 0
+    fi
+
     systemctl daemon-reload
+
+    local entry
+    for entry in "${migrated_entries[@]}"; do
+        IFS=: read -r new_timer_unit should_enable should_start <<< "$entry"
+        if [[ "$should_enable" == "true" ]]; then
+            systemctl enable "$new_timer_unit" >/dev/null || {
+                msg_warn "启用 ${new_timer_unit} 失败。"
+                ((++fail_count))
+            }
+        fi
+        if [[ "$should_start" == "true" ]]; then
+            systemctl start "$new_timer_unit" >/dev/null || {
+                msg_warn "启动 ${new_timer_unit} 失败。"
+                ((++fail_count))
+            }
+        fi
+    done
+
+    msg_ok "已迁移 ${migrated_count} 个备份 timer。"
+    [[ $fail_count -eq 0 ]]
 }
 
 main() {
@@ -348,8 +412,20 @@ main() {
     rm -f "$source_archive"
     chmod +x "${ROOT_DIR}"/*.sh "${SCRIPT_DIR}"/*.sh
 
-    msg_info "正在设置 systemd 通知服务..."
-    setup_notification_services
+    # shellcheck source=lib/utils.sh
+    source "${SCRIPT_DIR}/utils.sh"
+    # shellcheck source=lib/systemd-units.sh
+    source "${SCRIPT_DIR}/systemd-units.sh"
+
+    msg_info "正在设置 systemd 服务模板..."
+    install_systemd_unit_templates
+    msg_ok "'backup-tool@.service' 已创建"
+    msg_ok "'service-failure-notify@.service' 已创建"
+    msg_ok "'service-success-notify@.service' 已创建"
+
+    if ! migrate_existing_backup_units_to_template_service; then
+        msg_warn "部分已有备份 timer 迁移失败，可稍后在菜单中重新执行'应用备份'。"
+    fi
 
     msg_info "正在创建符号链接到 /usr/local/bin/ ..."
     ln -sf ${ROOT_DIR}/backup-tool.sh /usr/local/bin/but

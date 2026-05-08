@@ -1,6 +1,6 @@
 # 备份工具 (Backup Tool)
 
-这是一个基于 `restic` 的**备份和通知管理**脚本，旨在简化和自动化备份配置流程。它通过一个交互式的命令行菜单，帮助你快速设置备份任务、管理保留策略以及通知任务，并自动生成对应的 `systemd` 服务和定时器，实现**自动化备份**和**成功 / 失败通知**。
+这是一个基于 `restic` 的**备份和通知管理**脚本，旨在简化和自动化备份配置流程。它通过一个交互式的命令行菜单，帮助你快速设置备份任务、管理保留策略以及通知任务，并自动生成对应的 `systemd` 模板服务和定时器，实现**自动化备份**和**成功 / 失败通知**。
 
 [Restic](https://restic.readthedocs.io/en/stable/) 是一个开源、多平台的备份工具，相比常见的使用 `rclone` 同步文件备份方案有以下优点：
 
@@ -15,7 +15,7 @@
 ## ✨ 主要功能
 
 - **交互式菜单**：通过一个清晰的 CLI 菜单管理备份和通知配置。
-- **自动化调度**：自动创建和管理 `systemd` 服务和定时器，根据 `OnCalendar` 表达式执行定时备份。
+- **自动化调度**：自动创建和管理 `systemd` 模板服务和任务定时器，根据 `OnCalendar` 表达式执行定时备份。
 - **多配置管理**：支持同时管理多个独立的备份任务和通知任务。
 - **灵活的后端**：通过 `restic` 和 `rclone`，支持将数据备份到**本地、SFTP 或各种主流云存储服务（如 S3, Google Drive, Dropbox 等）**。
 - **备份保留策略**：轻松定义快照保留策略，例如保留最近 7 天的每日备份和最近 4 周的每周备份。
@@ -51,7 +51,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/llleixx/backup-tool/main/ins
 2. 自动检测包管理器并安装所需依赖：`msmtp`、`jq`、`curl`、`bzip2`。
 3. 通过 GitHub Release API 下载并安装最新 `restic` 到 `/usr/local/bin/restic`。
 4. 从 GitHub 下载最新版本的脚本文件到 `/opt/backup`。
-5. 设置 `systemd` 模板服务，用于发送成功 / 失败通知。
+5. 设置 `systemd` 模板服务，用于执行备份以及发送成功 / 失败通知。
 6. 创建软链接，让你可以在任意路径下通过 `but` 或 `backup-tool` 命令运行主程序。
 
 安装完成后，直接运行：
@@ -88,7 +88,7 @@ backup-tool
 立即备份触发后，可以使用以下命令查看实时日志：
 
 ```bash
-journalctl -u backup-xxxx.service -f
+journalctl -u backup-tool@xxxx.service -f
 ```
 
 一个备份配置包含以下参数：

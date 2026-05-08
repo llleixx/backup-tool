@@ -24,6 +24,7 @@ readonly _ROOT_DIR="/opt/backup"
 # --- 加载库文件 ---
 source "${_ROOT_DIR}/lib/config.sh"
 source "${_ROOT_DIR}/lib/utils.sh"
+source "${_ROOT_DIR}/lib/systemd-units.sh"
 source "${_ROOT_DIR}/lib/service-notify.sh"
 source "${_ROOT_DIR}/lib/backup-handler.sh"
 source "${_ROOT_DIR}/lib/notify-handler.sh"

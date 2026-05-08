@@ -287,7 +287,8 @@ _view_single_backup_config() {
     msg "  备份成功后 hook:        $(msg_ok "${post_success_hook:-未设置}")"
     msg "  备份失败后 hook:        $(msg_ok "${post_failure_hook:-未设置}")"
     msg "  密码:                   $(msg_warn "[已隐藏]")"
-    local timer_name="${config_id}.timer"
+    local timer_name
+    timer_name=$(backup_timer_unit_name "$config_id")
     msg_info "--- Systemd Timer 状态 [${timer_name}] ---"
     if ! systemctl cat "$timer_name" &> /dev/null; then
         msg "  状态:                   $(msg_warn "未找到 (可能尚未应用配置)")"
@@ -325,7 +326,10 @@ _delete_single_backup_config() {
     local config_id="$1"
     local need_confirm="${2:-true}"
     local conf_file="${CONF_DIR}/${config_id}.conf"
+    local service_unit timer_unit
     if [[ ! -f "$conf_file" ]]; then msg_err "配置文件不存在: $conf_file"; return 1; fi
+    service_unit=$(backup_service_unit_name "$config_id")
+    timer_unit=$(backup_timer_unit_name "$config_id")
     local repo
     repo=$(get_value_from_conf "$conf_file" "RESTIC_REPOSITORY")
     msg_warn "删除配置 [ID: ${config_id}]"
@@ -339,9 +343,10 @@ _delete_single_backup_config() {
         fi
     fi
     msg_info "停止 systemd service/timer..."
-    systemctl disable --now "${config_id}.timer" "${config_id}.service" &>/dev/null || true
+    systemctl disable --now "$timer_unit" &>/dev/null || true
+    systemctl stop "$service_unit" &>/dev/null || true
     msg_info "删除系统文件..."
-    rm -f "${SYSTEMD_DIR}/${config_id}.service" "${SYSTEMD_DIR}/${config_id}.timer"
+    rm -f "${SYSTEMD_DIR}/${timer_unit}"
     msg_info "删除配置文件..."
     rm -f "$conf_file"
     return 0
@@ -406,8 +411,12 @@ apply_all_backup_configs() {
 
 _apply_single_backup_config() {
     local config_id="$1"
-    msg_info "正在停止并禁用 ${config_id}.timer..."
-    systemctl disable --now "${config_id}.timer" &>/dev/null || true
+    local service_unit timer_unit
+    service_unit=$(backup_service_unit_name "$config_id")
+    timer_unit=$(backup_timer_unit_name "$config_id")
+    msg_info "正在停止并禁用 ${timer_unit}..."
+    systemctl disable --now "$timer_unit" &>/dev/null || true
+    systemctl stop "$service_unit" &>/dev/null || true
     msg_info "正在为 ID '${config_id}' 生成系统文件..."
     if ! generate_backup_system_files "$config_id"; then 
         msg_err "错误：生成系统文件失败"
@@ -416,16 +425,17 @@ _apply_single_backup_config() {
 }
 
 _apply_config_post() {
-    local config_id
+    local config_id timer_unit
     local enable_fail_count=0
     APPLY_CONFIG_POST_FAIL_COUNT=0
 
     msg_info "重新加载 systemd daemon..."
     systemctl daemon-reload
     for config_id in "$@"; do
-        msg_info "正在启用并启动 ${config_id}.timer..."
-        if ! systemctl enable --now "${config_id}.timer"; then
-            msg_err "错误：启用 ${config_id}.timer 失败"
+        timer_unit=$(backup_timer_unit_name "$config_id")
+        msg_info "正在启用并启动 ${timer_unit}..."
+        if ! systemctl enable --now "$timer_unit"; then
+            msg_err "错误：启用 ${timer_unit} 失败"
             ((++enable_fail_count))
         fi
     done
@@ -450,42 +460,20 @@ generate_backup_system_files() {
     if [[ ! -f "$conf_file" ]]; then msg_err "错误: 找不到配置文件 $conf_file"; return 1; fi
     local on_calendar
     on_calendar=$(get_value_from_conf "$conf_file" "ON_CALENDAR")
-    local service_path="${SYSTEMD_DIR}/${config_id}.service"
-    cat > "$service_path" << EOF
-[Unit]
-Description=Backup Service (ID: ${config_id})
-OnFailure=service-failure-notify@%n
-OnSuccess=service-success-notify@%n
-After=network-online.target
-Wants=network-online.target
-[Service]
-Type=oneshot
-ExecStart=${SCRIPT_DIR}/run-backup.sh ${conf_file}
-User=root
-Group=root
-EOF
-    local timer_path="${SYSTEMD_DIR}/${config_id}.timer"
-    cat > "$timer_path" << EOF
-[Unit]
-Description=Run Backup Script (ID: ${config_id}) regularly
-[Timer]
-OnCalendar=${on_calendar}
-Persistent=true
-RandomizedDelaySec=15m
-[Install]
-WantedBy=timers.target
-EOF
-    return 0
+    install_backup_service_template
+    write_backup_timer_unit "$config_id" "$on_calendar"
 }
 
 backup_single_backup_config() {
     local config_id="$1"
+    local service_unit
+    service_unit=$(backup_service_unit_name "$config_id")
     msg_info "正在为配置 ID '$config_id' 触发即时备份..."
-    if systemctl start --no-block "$config_id.service"; then
+    if systemctl start --no-block "$service_unit"; then
         msg_ok "备份任务已提交给 systemd。"
-        msg_info "日志查看命令: journalctl -u ${config_id}.service -f"
+        msg_info "日志查看命令: journalctl -u ${service_unit} -f"
     else
-        msg_err "错误：触发备份任务失败，请检查 ${config_id}.service 是否已正确应用"
+        msg_err "错误：触发备份任务失败，请检查 ${service_unit} 是否已正确应用"
         return 1
     fi
 }

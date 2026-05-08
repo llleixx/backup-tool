@@ -135,6 +135,7 @@ _uninstall_script() {
     done
 
     rm -rf "${ROOT_DIR}"
+    rm -f /etc/systemd/system/backup-tool@.service
     rm -f /etc/systemd/system/service-failure-notify@.service
     rm -f /etc/systemd/system/service-success-notify@.service
     rm -f /usr/local/bin/backup-tool
