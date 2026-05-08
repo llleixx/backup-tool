@@ -8,7 +8,11 @@ SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
 source "${SCRIPT_DIR}/utils.sh"
 
-if [[ -z "$1" ]]; then echo "错误：必须提供配置文件路径作为参数。" >&2; exit 1; fi
+if (($# != 1)); then
+  echo "错误：必须提供且仅提供一个配置文件路径作为参数。" >&2
+  exit 1
+fi
+
 CONF_FILE="$1"
 if [[ ! -f "$CONF_FILE" ]]; then echo "错误：配置文件 '${CONF_FILE}' 未找到。" >&2; exit 1; fi
 
